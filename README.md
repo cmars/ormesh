@@ -51,6 +51,8 @@ conventionally defined.
 ormesh is not intended for operating unauthenticated anonymous hidden
 services, nor is it intended for low-latency, high bandwidth applications.
 
+ormesh doesn't support IPv6.
+
 # Configuring
 
 ## Exporting local services
@@ -133,7 +135,7 @@ Local port forwarding to the remote service. Local port 10022 will forward to
 port 22 on the remote.
 
 ```
-$ ormesh import website add 10022:127.0.0.1:22
+$ ormesh import add website 22 127.0.0.1:10022
 $ ormesh status
 remotes:
   - name: website
@@ -149,10 +151,10 @@ your email server at home, but your ISP blocks SMTP and you lack a static IP
 address. Import the service from a cloud instance with a public IP and DNS.
 
 ```
-$ ormesh import mailinabox add 25:0.0.0.0:25
-$ ormesh import mailinabox add 80:0.0.0.0:80
-$ ormesh import mailinabox add 443:0.0.0.0:443
-$ ormesh import mailinabox add 993:0.0.0.0:993
+$ ormesh import add mailinabox 25 0.0.0.0:25
+$ ormesh import add mailinabox 80 0.0.0.0:80
+$ ormesh import add mailinabox 443 0.0.0.0:443
+$ ormesh import add mailinabox 993 0.0.0.0:993
 ```
 
 # Operating
