@@ -6,11 +6,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cmars/orc/control"
 	"github.com/pkg/errors"
@@ -40,15 +43,26 @@ func New(cfg *config.Config) (*Agent, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate control password hash")
 	}
+	torrcPath := filepath.Join(cfg.Dir, "tor", "torrc")
+	if _, err := os.Stat(torrcPath); err != nil && os.IsNotExist(err) {
+		err := ioutil.WriteFile(torrcPath, []byte(`
+Log notice stdout
+`), 0600)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create torrc")
+		}
+	}
 	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
-		"-f", filepath.Join(cfg.Dir, "tor", "torrc"),
+		"-f", torrcPath,
+		"--Log", "notice stdout",
 		"--SocksPort", cfg.Node.Agent.SocksAddr,
 		"--ControlPort", cfg.Node.Agent.ControlAddr,
 		"--DataDirectory", dataDir,
-		"--HiddenServiceDir", hiddenServiceDir,
+		//"--HiddenServiceDir", hiddenServiceDir,
 		"--HashedControlPassword", controlHash,
 	)
 	cmd.Dir = dataDir
+	cmd.Stderr = os.Stderr
 	return &Agent{
 		dataDir:          dataDir,
 		hiddenServiceDir: hiddenServiceDir,
@@ -72,14 +86,38 @@ func generateControlPass(cfg *config.Config) (string, string, error) {
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to obtain hashed control password")
 	}
-	return password, out.String(), nil
+	return password, strings.TrimSpace(out.String()), nil
 }
 
 func (a *Agent) Start() error {
-	err := a.cmd.Start()
+	log.Printf("%#v", a.cmd)
+	stdout, err := a.cmd.StdoutPipe()
+	if err != nil {
+		return errors.Wrap(err, "failed to configure standard output")
+	}
+	err = a.cmd.Start()
 	if err != nil {
 		return errors.Wrap(err, "failed to start")
 	}
+	deadline := time.Now().Add(30 * time.Second)
+	// Read output until one gets a "Bootstrapped 100%: Done" notice.
+	buf := bufio.NewReader(stdout)
+	line, err := buf.ReadString('\n')
+	for err == nil {
+		log.Println(line)
+		if time.Now().After(deadline) {
+			_ = a.cmd.Process.Kill()
+			return errors.New("timeout waiting for tor to start")
+		}
+		if strings.Contains(line, "Bootstrapped 100%: Done") {
+			break
+		}
+		line, err = buf.ReadString('\n')
+	}
+	if err != nil {
+		return errors.Errorf("failed to read output: %v", err)
+	}
+
 	conn, err := control.Dial(a.controlAddr)
 	if err != nil {
 		return errors.Wrap(err, "control connect failed")
@@ -113,6 +151,7 @@ func (a *Agent) UpdateServices(svc *config.Service) error {
 		_, err = a.conn.Send(control.Cmd{
 			Keyword: "SETCONF",
 			Arguments: []string{
+				fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir),
 				fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export),
 			},
 		})

@@ -22,6 +22,7 @@ import (
 
 	"github.com/cmars/ormesh/config"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -82,7 +83,9 @@ func initConfig() {
 
 func withConfig(f func(config *config.Config)) {
 	cfg, err := config.ReadFile(cfgFile)
-	if err != nil {
+	if os.IsNotExist(errors.Cause(err)) {
+		cfg = config.NewFile(cfgFile)
+	} else if err != nil {
 		log.Fatalf("failed to read config: %v", err)
 	}
 	f(cfg)

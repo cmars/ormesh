@@ -3,6 +3,7 @@ package config
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,11 +25,11 @@ func TestConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
-	if cfg.Node.Agent.SocksPort != 9250 {
-		t.Errorf("default node.agent.socksport = %d", cfg.Node.Agent.SocksPort)
+	if cfg.Node.Agent.SocksAddr != "127.0.0.1:9250" {
+		t.Errorf("default node.agent.socksport = %d", cfg.Node.Agent.SocksAddr)
 	}
-	if cfg.Node.Agent.ControlPort != 9251 {
-		t.Errorf("default node.agent.controlport = %d", cfg.Node.Agent.ControlPort)
+	if cfg.Node.Agent.ControlAddr != "127.0.0.1:9251" {
+		t.Errorf("default node.agent.controlport = %d", cfg.Node.Agent.ControlAddr)
 	}
 }
 
@@ -36,18 +37,18 @@ func TestRoundTrip(t *testing.T) {
 	fpath := tempFile(t)
 	defer os.Remove(fpath)
 	config := Config{
+		Dir:  filepath.Dir(fpath),
+		Path: fpath,
 		Node: Node{
 			Agent: Agent{
-				TorBinary:   "/usr/bin/tor",
-				TorDataDir:  "/var/lib/tor",
-				SocksPort:   9050,
-				ControlPort: 9051,
+				TorBinaryPath: "/usr/bin/tor",
+				SocksAddr:     "127.0.0.1:9050",
+				ControlAddr:   "127.0.0.1:9051",
 			},
 			Service: Service{
-				Exports: []Export{{
-					Addr: "127.0.0.1",
-					Port: 80,
-				}},
+				Exports: []string{
+					"127.0.0.1:80",
+				},
 				Clients: []Client{{
 					Name:    "bob",
 					Address: "qwertyuiop.onion",

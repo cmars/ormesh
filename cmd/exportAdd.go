@@ -56,6 +56,11 @@ to quickly create a Cobra application.`,
 			if err != nil {
 				log.Fatalf("failed to initialize agent: %v", err)
 			}
+			err = a.Start()
+			if err != nil {
+				log.Fatalf("failed to start agent: %v", err)
+			}
+			defer a.Stop()
 			err = a.UpdateServices(&cfg.Node.Service)
 			if err != nil {
 				log.Fatalf("failed to update tor: %v", err)

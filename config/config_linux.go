@@ -1,9 +1,9 @@
-// +build darwin
+// +build linux
 
 package config
 
-func (a *config.Config) platformDefaults() {
-	if a.TorBinaryPath == "" {
-		a.TorBinaryPath = "/usr/bin/tor"
+func (c *Config) platformDefaults() {
+	if c.Node.Agent.TorBinaryPath == "" {
+		c.Node.Agent.TorBinaryPath = "/usr/bin/tor"
 	}
 }

@@ -63,16 +63,36 @@ type Agent struct {
 	ControlAddr   string
 }
 
+func (c *Config) defaults(md *toml.MetaData) {
+	if !md.IsDefined("Node", "Agent", "SocksAddr") {
+		c.Node.Agent.SocksAddr = "127.0.0.1:9250"
+	}
+	if !md.IsDefined("Node", "Agent", "ControlAddr") {
+		c.Node.Agent.ControlAddr = "127.0.0.1:9251"
+	}
+}
+
 func ReadFile(fpath string) (*Config, error) {
-	var config Config
-	_, err := toml.DecodeFile(fpath, &config)
+	var cfg Config
+	md, err := toml.DecodeFile(fpath, &cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read config %q", fpath)
 	}
-	config.Path = fpath
-	config.Dir = filepath.Dir(fpath)
-	config.platformDefaults()
-	return &config, nil
+	cfg.init(fpath, &md)
+	return &cfg, nil
+}
+
+func NewFile(fpath string) *Config {
+	cfg := Config{}
+	cfg.init(fpath, &toml.MetaData{})
+	return &cfg
+}
+
+func (c *Config) init(fpath string, md *toml.MetaData) {
+	c.Path = fpath
+	c.Dir = filepath.Dir(fpath)
+	c.platformDefaults()
+	c.defaults(&toml.MetaData{})
 }
 
 func WriteFile(config *Config, fpath string) error {
