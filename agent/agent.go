@@ -58,10 +58,10 @@ Log notice stdout
 		"--SocksPort", cfg.Node.Agent.SocksAddr,
 		"--ControlPort", cfg.Node.Agent.ControlAddr,
 		"--DataDirectory", dataDir,
-		//"--HiddenServiceDir", hiddenServiceDir,
 		"--HashedControlPassword", controlHash,
 	)
 	cmd.Dir = dataDir
+	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return &Agent{
 		dataDir:          dataDir,
@@ -90,44 +90,31 @@ func generateControlPass(cfg *config.Config) (string, string, error) {
 }
 
 func (a *Agent) Start() error {
+	var (
+		conn *control.Conn
+		err  error
+	)
+
 	log.Printf("%#v", a.cmd)
-	stdout, err := a.cmd.StdoutPipe()
-	if err != nil {
-		return errors.Wrap(err, "failed to configure standard output")
-	}
 	err = a.cmd.Start()
 	if err != nil {
 		return errors.Wrap(err, "failed to start")
 	}
-	deadline := time.Now().Add(30 * time.Second)
-	// Read output until one gets a "Bootstrapped 100%: Done" notice.
-	buf := bufio.NewReader(stdout)
-	line, err := buf.ReadString('\n')
-	for err == nil {
-		log.Println(line)
-		if time.Now().After(deadline) {
-			_ = a.cmd.Process.Kill()
-			return errors.New("timeout waiting for tor to start")
+	// Try to connect for 45 seconds cumulative
+	for s := 1; s < 10; s++ {
+		conn, err = control.Dial(a.controlAddr)
+		if err != nil {
+			time.Sleep(time.Duration(s) * time.Second)
+			continue
 		}
-		if strings.Contains(line, "Bootstrapped 100%: Done") {
-			break
+		err = conn.Auth(a.controlPass)
+		if err != nil {
+			return errors.Wrap(err, "control auth failed")
 		}
-		line, err = buf.ReadString('\n')
+		a.conn = conn
+		return nil
 	}
-	if err != nil {
-		return errors.Errorf("failed to read output: %v", err)
-	}
-
-	conn, err := control.Dial(a.controlAddr)
-	if err != nil {
-		return errors.Wrap(err, "control connect failed")
-	}
-	err = conn.Auth(a.controlPass)
-	if err != nil {
-		return errors.Wrap(err, "control auth failed")
-	}
-	a.conn = conn
-	return nil
+	return errors.Wrap(err, "control connect failed")
 }
 
 func (a *Agent) Stop() error {
@@ -143,34 +130,34 @@ func (a *Agent) Stop() error {
 }
 
 func (a *Agent) UpdateServices(svc *config.Service) error {
+	if len(svc.Exports) == 0 {
+		return nil
+	}
+	args := []string{fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir)}
 	for _, export := range svc.Exports {
 		_, port, err := net.SplitHostPort(export)
 		if err != nil {
 			return errors.Wrapf(err, "invalid export %q", export)
 		}
-		_, err = a.conn.Send(control.Cmd{
-			Keyword: "SETCONF",
-			Arguments: []string{
-				fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir),
-				fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export),
-			},
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to update HiddenServicePort")
-		}
+		args = append(args,
+			fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export))
 	}
 	var clientNames []string
 	for _, client := range svc.Clients {
 		clientNames = append(clientNames, client.Name)
 	}
+	if len(clientNames) > 0 {
+		args = append(args,
+			fmt.Sprintf(`HiddenServiceAuthorizeClient="stealth %s"`,
+				strings.Join(clientNames, ",")))
+	}
+	log.Println(args)
 	_, err := a.conn.Send(control.Cmd{
-		Keyword: "SETCONF",
-		Arguments: []string{
-			fmt.Sprintf(`HiddenServiceAuthorizeClient="stealth %s"`, strings.Join(clientNames, ",")),
-		},
+		Keyword:   "SETCONF",
+		Arguments: args,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to configure HiddenServiceAuthorizeClient")
+		return errors.Wrap(err, "failed to configure hidden services")
 	}
 	_, err = a.conn.Send(control.Cmd{
 		Keyword:   "SAVECONF",
@@ -192,6 +179,7 @@ func (a *Agent) ClientAccess(clientName string) (string, string, error) {
 	lines := bufio.NewScanner(f)
 	for lines.Scan() {
 		line := lines.Text()
+		log.Println(line)
 		if strings.HasSuffix(line, fmt.Sprintf("# client: %s", clientName)) {
 			fields := strings.Split(line, " ")
 			if len(fields) < 5 {

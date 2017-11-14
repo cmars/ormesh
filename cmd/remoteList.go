@@ -34,10 +34,11 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(config *config.Config) {
+		withConfig(func(config *config.Config) error {
 			for _, remote := range config.Node.Remotes {
 				fmt.Println(remote)
 			}
+			return nil
 		})
 	},
 }

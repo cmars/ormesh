@@ -15,8 +15,7 @@
 package cmd
 
 import (
-	"log"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -34,18 +33,18 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		remoteName, token := args[0], args[1]
-		if !IsValidRemoteName(remoteName) {
-			log.Fatalf("invalid remote name %q", remoteName)
-		}
-		clientAddr, clientAuth, err := ParseClientToken(token)
-		if err != nil {
-			log.Fatalf("invalid client token: %v", err)
-		}
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
+			remoteName, token := args[0], args[1]
+			if !IsValidRemoteName(remoteName) {
+				return errors.Errorf("invalid remote name %q", remoteName)
+			}
+			clientAddr, clientAuth, err := ParseClientToken(token)
+			if err != nil {
+				return errors.Errorf("invalid client token: %v", err)
+			}
 			for i := range cfg.Node.Remotes {
 				if cfg.Node.Remotes[i].Name == remoteName {
-					log.Fatalf("remote %q already exists", remoteName)
+					return errors.Errorf("remote %q already exists", remoteName)
 				}
 			}
 			remote := config.Remote{
@@ -54,6 +53,7 @@ to quickly create a Cobra application.`,
 				Auth:    clientAuth,
 			}
 			cfg.Node.Remotes = append(cfg.Node.Remotes, remote)
+			return nil
 		})
 	},
 }

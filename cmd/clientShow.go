@@ -16,8 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -35,17 +35,18 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(config *config.Config) {
+		withConfig(func(config *config.Config) error {
 			clientName := args[0]
 			if !IsValidClientName(clientName) {
-				log.Fatalf("invalid client name %q", clientName)
+				return errors.Errorf("invalid client name %q", clientName)
 			}
 			for _, client := range config.Node.Service.Clients {
 				if client.Name == clientName {
 					fmt.Println(client)
-					return
+					return nil
 				}
 			}
+			return errors.Errorf("no such client %q", clientName)
 		})
 	},
 }

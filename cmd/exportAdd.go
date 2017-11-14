@@ -15,8 +15,7 @@
 package cmd
 
 import (
-	"log"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/agent"
@@ -35,10 +34,10 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
 			exportAddr, err := NormalizeAddrPort(args[0])
 			if err != nil {
-				log.Fatalf("invalid export address %q", args[0])
+				return errors.Errorf("invalid export address %q", args[0])
 			}
 			index := -1
 			for i := range cfg.Node.Service.Exports {
@@ -49,22 +48,21 @@ to quickly create a Cobra application.`,
 			}
 			if index < 0 {
 				cfg.Node.Service.Exports = append(cfg.Node.Service.Exports, exportAddr)
-			} else {
-				return
 			}
 			a, err := agent.New(cfg)
 			if err != nil {
-				log.Fatalf("failed to initialize agent: %v", err)
+				return errors.Errorf("failed to initialize agent: %v", err)
 			}
 			err = a.Start()
 			if err != nil {
-				log.Fatalf("failed to start agent: %v", err)
+				return errors.Errorf("failed to start agent: %v", err)
 			}
 			defer a.Stop()
 			err = a.UpdateServices(&cfg.Node.Service)
 			if err != nil {
-				log.Fatalf("failed to update tor: %v", err)
+				return errors.Errorf("failed to update tor: %v", err)
 			}
+			return nil
 		})
 	},
 }

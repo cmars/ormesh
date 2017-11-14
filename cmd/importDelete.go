@@ -15,9 +15,9 @@
 package cmd
 
 import (
-	"log"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -35,15 +35,15 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		remoteName, remotePort := args[0], args[1]
-		if !IsValidRemoteName(remoteName) {
-			log.Fatalf("invalid remote name %q", remoteName)
-		}
-		remotePortNum, err := strconv.Atoi(remotePort)
-		if err != nil {
-			log.Fatalf("invalid remote port %q", remotePort)
-		}
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
+			remoteName, remotePort := args[0], args[1]
+			if !IsValidRemoteName(remoteName) {
+				return errors.Errorf("invalid remote name %q", remoteName)
+			}
+			remotePortNum, err := strconv.Atoi(remotePort)
+			if err != nil {
+				return errors.Errorf("invalid remote port %q", remotePort)
+			}
 			remoteIndex := -1
 			for i := range cfg.Node.Remotes {
 				if cfg.Node.Remotes[i].Name == remoteName {
@@ -52,7 +52,7 @@ to quickly create a Cobra application.`,
 				}
 			}
 			if remoteIndex < 0 {
-				log.Fatalf("no such remote: %q", remoteName)
+				return errors.Errorf("no such remote: %q", remoteName)
 			}
 			var imports []config.Import
 			for i := range cfg.Node.Remotes[remoteIndex].Imports {
@@ -61,6 +61,7 @@ to quickly create a Cobra application.`,
 				}
 			}
 			cfg.Node.Remotes[remoteIndex].Imports = imports
+			return nil
 		})
 	},
 }

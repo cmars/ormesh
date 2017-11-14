@@ -16,8 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -35,18 +35,18 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		remoteName := args[0]
-		if !IsValidRemoteName(remoteName) {
-			log.Fatalf("invalid remote %q", remoteName)
-		}
-		withConfig(func(cfg *config.Config) {
+		withConfig(func(cfg *config.Config) error {
+			remoteName := args[0]
+			if !IsValidRemoteName(remoteName) {
+				return errors.Errorf("invalid remote %q", remoteName)
+			}
 			for _, remote := range cfg.Node.Remotes {
 				if remote.Name == remoteName {
 					fmt.Println(remote)
-					return
+					return nil
 				}
 			}
-			log.Fatalf("no such remote %q", remoteName)
+			return errors.Errorf("no such remote %q", remoteName)
 		})
 	},
 }

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/agent"
@@ -37,11 +38,11 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientName := args[0]
-		if !IsValidClientName(clientName) {
-			log.Fatalf("invalid client name %q", clientName)
-		}
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
+			clientName := args[0]
+			if !IsValidClientName(clientName) {
+				return errors.Errorf("invalid client name %q", clientName)
+			}
 			index := -1
 			for i := range cfg.Node.Service.Clients {
 				if cfg.Node.Service.Clients[i].Name == clientName {
@@ -55,25 +56,27 @@ to quickly create a Cobra application.`,
 					Name: clientName,
 				})
 			}
+			log.Printf("%#v", cfg)
 			a, err := agent.New(cfg)
 			if err != nil {
-				log.Fatalf("failed to initialize agent: %v", err)
+				return errors.Wrap(err, "failed to initialize agent")
 			}
 			err = a.Start()
 			if err != nil {
-				log.Fatalf("failed to start agent: %v", err)
+				return errors.Wrap(err, "failed to start agent")
 			}
 			defer a.Stop()
 			err = a.UpdateServices(&cfg.Node.Service)
 			if err != nil {
-				log.Fatalf("failed to update agent: %v", err)
+				return errors.Wrap(err, "failed to update agent")
 			}
 			address, clientAuth, err := a.ClientAccess(clientName)
 			if err != nil {
-				log.Fatalf("failed to read client info from tor: %v", err)
+				return errors.Wrap(err, "failed to read client info from tor")
 			}
 			cfg.Node.Service.Clients[index].Address = address
 			fmt.Println(base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s,%s", address, clientAuth))))
+			return nil
 		})
 	},
 }

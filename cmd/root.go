@@ -81,24 +81,32 @@ func initConfig() {
 	}
 }
 
-func withConfig(f func(config *config.Config)) {
+func withConfig(f func(config *config.Config) error) {
 	cfg, err := config.ReadFile(cfgFile)
 	if os.IsNotExist(errors.Cause(err)) {
 		cfg = config.NewFile(cfgFile)
 	} else if err != nil {
-		log.Fatalf("failed to read config: %v", err)
+		log.Fatalf("%v", err)
 	}
-	f(cfg)
+	err = f(cfg)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 }
 
-func withConfigForUpdate(f func(config *config.Config)) {
+func withConfigForUpdate(f func(config *config.Config) error) {
 	cfg, err := config.ReadFile(cfgFile)
-	if err != nil {
-		log.Fatalf("failed to read config: %v", err)
+	if os.IsNotExist(errors.Cause(err)) {
+		cfg = config.NewFile(cfgFile)
+	} else if err != nil {
+		log.Fatalf("%v", err)
 	}
-	f(cfg)
+	err = f(cfg)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 	err = config.WriteFile(cfg, cfgFile)
 	if err != nil {
-		log.Fatalf("failed to write config: %v", err)
+		log.Fatalf("%v", err)
 	}
 }

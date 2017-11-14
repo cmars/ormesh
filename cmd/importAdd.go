@@ -15,10 +15,10 @@
 package cmd
 
 import (
-	"log"
 	"net"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -36,32 +36,32 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		remoteName, remotePort, localAddr := args[0], args[1], args[2]
-		if !IsValidRemoteName(remoteName) {
-			log.Fatalf("invalid remote name %q", remoteName)
-		}
-		remotePortNum, err := strconv.Atoi(remotePort)
-		if err != nil {
-			log.Fatalf("invalid remote port %q", remotePort)
-		}
-		localAddr, err = NormalizeAddrPort(localAddr)
-		if err != nil {
-			log.Fatalf("invalid local address %q", localAddr)
-		}
-		localHost, localPort, err := net.SplitHostPort(localAddr)
-		if err != nil {
-			log.Fatalf("invalid local address %q: %v", localAddr, err)
-		}
-		localPortNum, err := strconv.Atoi(localPort)
-		if err != nil {
-			log.Fatalf("invalid local port %q", localPort)
-		}
-		newImport := config.Import{
-			LocalAddr:  localHost,
-			LocalPort:  localPortNum,
-			RemotePort: remotePortNum,
-		}
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
+			remoteName, remotePort, localAddr := args[0], args[1], args[2]
+			if !IsValidRemoteName(remoteName) {
+				return errors.Errorf("invalid remote name %q", remoteName)
+			}
+			remotePortNum, err := strconv.Atoi(remotePort)
+			if err != nil {
+				return errors.Errorf("invalid remote port %q", remotePort)
+			}
+			localAddr, err = NormalizeAddrPort(localAddr)
+			if err != nil {
+				return errors.Errorf("invalid local address %q", localAddr)
+			}
+			localHost, localPort, err := net.SplitHostPort(localAddr)
+			if err != nil {
+				return errors.Errorf("invalid local address %q: %v", localAddr, err)
+			}
+			localPortNum, err := strconv.Atoi(localPort)
+			if err != nil {
+				return errors.Errorf("invalid local port %q", localPort)
+			}
+			newImport := config.Import{
+				LocalAddr:  localHost,
+				LocalPort:  localPortNum,
+				RemotePort: remotePortNum,
+			}
 			remoteIndex := -1
 			for i := range cfg.Node.Remotes {
 				if cfg.Node.Remotes[i].Name == remoteName {
@@ -70,16 +70,17 @@ to quickly create a Cobra application.`,
 				}
 			}
 			if remoteIndex < 0 {
-				log.Fatalf("no such remote: %q", remoteName)
+				return errors.Errorf("no such remote: %q", remoteName)
 			}
 			for i := range cfg.Node.Remotes[remoteIndex].Imports {
 				if cfg.Node.Remotes[i].Imports[i] == newImport {
-					return
+					return nil
 				}
 			}
 			cfg.Node.Remotes[remoteIndex].Imports = append(
 				cfg.Node.Remotes[remoteIndex].Imports,
 				newImport)
+			return nil
 		})
 	},
 }

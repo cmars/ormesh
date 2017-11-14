@@ -15,8 +15,7 @@
 package cmd
 
 import (
-	"log"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/config"
@@ -34,10 +33,10 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) {
+		withConfigForUpdate(func(cfg *config.Config) error {
 			exportAddr, err := NormalizeAddrPort(args[0])
 			if err != nil {
-				log.Fatalf("invalid export address %q", args[0])
+				return errors.Errorf("invalid export address %q", args[0])
 			}
 			index := -1
 			for i := range cfg.Node.Service.Exports {
@@ -47,11 +46,12 @@ to quickly create a Cobra application.`,
 				}
 			}
 			if index == -1 {
-				log.Fatalf("no such export: %q", exportAddr)
+				return errors.Errorf("no such export: %q", exportAddr)
 			}
 			cfg.Node.Service.Exports = append(
 				cfg.Node.Service.Exports[:index],
 				cfg.Node.Service.Exports[index+1:]...)
+			return nil
 		})
 	},
 }
