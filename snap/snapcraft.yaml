@@ -1,0 +1,42 @@
+name: ormesh
+version: '0.1'
+summary: Onion-routed mesh
+description: |
+  ormesh helps you build a private mesh of hosts connected through Tor. Access
+  your services running almost anywhere, from almost anywhere else. Without much
+  hassle. Abstract away geography and networks.
+
+grade: stable
+confinement: strict
+
+apps:
+  ormesh:
+    plugs:
+      - network
+      - network-bind
+    command: ormesh
+  tor:
+    plugs:
+      - network
+      - network-bind
+    command: usr/bin/tor
+
+parts:
+  prepare:
+    plugin: nil
+    prepare: |
+      echo "deb http://deb.torproject.org/torproject.org xenial main" | sudo tee /etc/apt/sources.list.d/tor.list
+      echo "deb-src http://deb.torproject.org/torproject.org xenial main" | sudo tee -a /etc/apt/sources.list.d/tor.list
+      sudo apt-key adv --keyserver keys.gnupg.net --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
+      sudo apt update
+      sudo apt upgrade -yy
+  ormesh:
+    plugin: go
+    after:
+      - prepare
+    stage-packages:
+      - tor
+      - deb.torproject.org-keyring
+    go-packages:
+      - github.com/cmars/ormesh
+
