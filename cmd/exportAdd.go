@@ -51,16 +51,16 @@ to quickly create a Cobra application.`,
 			}
 			a, err := agent.New(cfg)
 			if err != nil {
-				return errors.Errorf("failed to initialize agent: %v", err)
+				return errors.Wrap(err, "failed to initialize agent")
 			}
 			err = a.Start()
 			if err != nil {
-				return errors.Errorf("failed to start agent: %v", err)
+				return errors.Wrap(err, "failed to start agent")
 			}
 			defer a.Stop()
 			err = a.UpdateServices(&cfg.Node.Service)
 			if err != nil {
-				return errors.Errorf("failed to update tor: %v", err)
+				return errors.Wrap(err, "failed to update tor hidden services")
 			}
 			return nil
 		})

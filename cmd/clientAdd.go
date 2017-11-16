@@ -17,7 +17,6 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -56,7 +55,6 @@ to quickly create a Cobra application.`,
 					Name: clientName,
 				})
 			}
-			log.Printf("%#v", cfg)
 			a, err := agent.New(cfg)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize agent")
@@ -68,11 +66,11 @@ to quickly create a Cobra application.`,
 			defer a.Stop()
 			err = a.UpdateServices(&cfg.Node.Service)
 			if err != nil {
-				return errors.Wrap(err, "failed to update agent")
+				return errors.Wrap(err, "failed to update tor hidden services")
 			}
 			address, clientAuth, err := a.ClientAccess(clientName)
 			if err != nil {
-				return errors.Wrap(err, "failed to read client info from tor")
+				return errors.Wrap(err, "failed to read tor client auth")
 			}
 			cfg.Node.Service.Clients[index].Address = address
 			fmt.Println(base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s,%s", address, clientAuth))))

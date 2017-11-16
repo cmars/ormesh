@@ -35,13 +35,13 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(config *config.Config) error {
+		withConfig(func(cfg *config.Config) error {
 			remoteName := args[0]
 			if !IsValidRemoteName(remoteName) {
 				return errors.Errorf("invalid remote name %q", remoteName)
 			}
 			// TODO: use specified remote
-			for _, remote := range config.Node.Remotes {
+			for _, remote := range cfg.Node.Remotes {
 				if remote.Name == remoteName {
 					for _, import_ := range remote.Imports {
 						fmt.Println(import_)

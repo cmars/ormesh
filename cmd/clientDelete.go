@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/cmars/ormesh/agent"
 	"github.com/cmars/ormesh/config"
 )
 
@@ -51,6 +52,20 @@ to quickly create a Cobra application.`,
 			cfg.Node.Service.Clients = append(
 				cfg.Node.Service.Clients[:index],
 				cfg.Node.Service.Clients[index+1:]...)
+
+			a, err := agent.New(cfg)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize agent")
+			}
+			err = a.Start()
+			if err != nil {
+				return errors.Wrap(err, "failed to start agent")
+			}
+			defer a.Stop()
+			err = a.UpdateServices(&cfg.Node.Service)
+			if err != nil {
+				return errors.Wrap(err, "failed to update tor hidden services")
+			}
 			return nil
 		})
 	},

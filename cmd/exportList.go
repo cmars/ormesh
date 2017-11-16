@@ -33,8 +33,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(config *config.Config) error {
-			for _, export := range config.Node.Service.Exports {
+		withConfig(func(cfg *config.Config) error {
+			for _, export := range cfg.Node.Service.Exports {
 				fmt.Println(export)
 			}
 			return nil

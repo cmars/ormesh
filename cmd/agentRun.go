@@ -15,8 +15,13 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
+	"os"
+	"os/signal"
 
+	"github.com/cmars/ormesh/agent"
+	"github.com/cmars/ormesh/config"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +36,23 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("agentRun called")
+		withConfig(func(cfg *config.Config) error {
+			a, err := agent.New(cfg)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize agent")
+			}
+			err = a.Start()
+			if err != nil {
+				return errors.Wrap(err, "failed to start agent")
+			}
+			defer a.Stop()
+
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			s := <-c
+			log.Printf("exit on signal %v", s)
+			return nil
+		})
 	},
 }
 
