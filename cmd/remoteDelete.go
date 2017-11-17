@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/cmars/ormesh/agent"
 	"github.com/cmars/ormesh/config"
 )
 
@@ -48,6 +49,19 @@ to quickly create a Cobra application.`,
 				return errors.Errorf("no such remote %q", remoteName)
 			}
 			cfg.Node.Remotes = append(cfg.Node.Remotes[:index], cfg.Node.Remotes[index+1:]...)
+			a, err := agent.New(cfg)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize agent")
+			}
+			err = a.Start()
+			if err != nil {
+				return errors.Wrap(err, "failed to start agent")
+			}
+			defer a.Stop()
+			err = a.UpdateRemotes(&cfg.Node)
+			if err != nil {
+				return errors.Wrap(err, "failed to update remotes")
+			}
 			return nil
 		})
 	},

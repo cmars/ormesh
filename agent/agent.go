@@ -190,3 +190,30 @@ func (a *Agent) ClientAccess(clientName string) (string, string, error) {
 	}
 	return "", "", errors.New("not found")
 }
+
+func (a *Agent) UpdateRemotes(node *config.Node) error {
+	var args []string
+	for _, remote := range node.Remotes {
+		if remote.Auth != "" {
+			args = append(args, fmt.Sprintf(`HidServAuth="%s %s"`, remote.Address, remote.Auth))
+		}
+	}
+	if len(args) == 0 {
+		return nil
+	}
+	_, err := a.conn.Send(control.Cmd{
+		Keyword:   "SETCONF",
+		Arguments: args,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to configure hidden service auth")
+	}
+	_, err = a.conn.Send(control.Cmd{
+		Keyword:   "SAVECONF",
+		Arguments: []string{},
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to save configuration")
+	}
+	return nil
+}

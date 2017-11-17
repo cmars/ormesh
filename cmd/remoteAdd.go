@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/cmars/ormesh/agent"
 	"github.com/cmars/ormesh/config"
 )
 
@@ -53,6 +54,19 @@ to quickly create a Cobra application.`,
 				Auth:    clientAuth,
 			}
 			cfg.Node.Remotes = append(cfg.Node.Remotes, remote)
+			a, err := agent.New(cfg)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize agent")
+			}
+			err = a.Start()
+			if err != nil {
+				return errors.Wrap(err, "failed to start agent")
+			}
+			defer a.Stop()
+			err = a.UpdateRemotes(&cfg.Node)
+			if err != nil {
+				return errors.Wrap(err, "failed to update remotes")
+			}
 			return nil
 		})
 	},
