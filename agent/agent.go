@@ -130,36 +130,53 @@ func (a *Agent) Stop() error {
 }
 
 func (a *Agent) UpdateServices(svc *config.Service) error {
-	if len(svc.Exports) == 0 {
-		return nil
-	}
-	args := []string{fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir)}
-	for _, export := range svc.Exports {
-		_, port, err := net.SplitHostPort(export)
-		if err != nil {
-			return errors.Wrapf(err, "invalid export %q", export)
+	var setArgs, resetArgs []string
+
+	if len(svc.Exports) > 0 {
+		setArgs = append(setArgs, fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir))
+		for _, export := range svc.Exports {
+			_, port, err := net.SplitHostPort(export)
+			if err != nil {
+				return errors.Wrapf(err, "invalid export %q", export)
+			}
+			setArgs = append(setArgs,
+				fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export))
 		}
-		args = append(args,
-			fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export))
+	} else {
+		resetArgs = append(resetArgs, "HiddenServicePort")
 	}
+
 	var clientNames []string
 	for _, client := range svc.Clients {
 		clientNames = append(clientNames, client.Name)
 	}
 	if len(clientNames) > 0 {
-		args = append(args,
+		setArgs = append(setArgs,
 			fmt.Sprintf(`HiddenServiceAuthorizeClient="stealth %s"`,
 				strings.Join(clientNames, ",")))
+	} else {
+		resetArgs = append(resetArgs, "HiddenServiceAuthorizeClient")
 	}
-	log.Println(args)
+
+	if len(setArgs) > 0 {
+		_, err := a.conn.Send(control.Cmd{
+			Keyword:   "SETCONF",
+			Arguments: setArgs,
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	if len(resetArgs) > 0 {
+		_, err := a.conn.Send(control.Cmd{
+			Keyword:   "RESETCONF",
+			Arguments: resetArgs,
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
 	_, err := a.conn.Send(control.Cmd{
-		Keyword:   "SETCONF",
-		Arguments: args,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to configure hidden services")
-	}
-	_, err = a.conn.Send(control.Cmd{
 		Keyword:   "SAVECONF",
 		Arguments: []string{},
 	})
@@ -198,17 +215,24 @@ func (a *Agent) UpdateRemotes(node *config.Node) error {
 			args = append(args, fmt.Sprintf(`HidServAuth="%s %s"`, remote.Address, remote.Auth))
 		}
 	}
-	if len(args) == 0 {
-		return nil
+	if len(args) > 0 {
+		_, err := a.conn.Send(control.Cmd{
+			Keyword:   "SETCONF",
+			Arguments: args,
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	} else {
+		_, err := a.conn.Send(control.Cmd{
+			Keyword:   "RESETCONF",
+			Arguments: []string{"HidServAuth"},
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	_, err := a.conn.Send(control.Cmd{
-		Keyword:   "SETCONF",
-		Arguments: args,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to configure hidden service auth")
-	}
-	_, err = a.conn.Send(control.Cmd{
 		Keyword:   "SAVECONF",
 		Arguments: []string{},
 	})

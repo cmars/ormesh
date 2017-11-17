@@ -18,11 +18,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/agent"
 	"github.com/cmars/ormesh/config"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 )
 
 // agentRunCmd represents the agentRun command
@@ -47,11 +50,58 @@ to quickly create a Cobra application.`,
 			}
 			defer a.Stop()
 
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, os.Interrupt)
-			s := <-c
-			log.Printf("exit on signal %v", s)
-			return nil
+			refresh := func(cfg *config.Config) error {
+				err = a.UpdateServices(&cfg.Node.Service)
+				if err != nil {
+					return errors.Wrap(err, "failed to configure hidden services")
+				}
+				err = a.UpdateRemotes(&cfg.Node)
+				if err != nil {
+					return errors.Wrap(err, "failed to configure remotes")
+				}
+				return nil
+			}
+			refresh(cfg)
+
+			watcher, err := fsnotify.NewWatcher()
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			defer watcher.Close()
+			err = watcher.Add(cfg.Path)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			exitSignal := make(chan os.Signal, 1)
+			signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+
+			refreshSignal := make(chan os.Signal, 1)
+			signal.Notify(exitSignal, syscall.SIGHUP)
+
+			for {
+				select {
+				case s := <-exitSignal:
+					return errors.Errorf("exit on signal %v", s)
+				case <-refreshSignal:
+					err = refresh(cfg)
+					if err != nil {
+						return errors.WithStack(err)
+					}
+				case ev := <-watcher.Events:
+					if ev.Op&fsnotify.Write == fsnotify.Write {
+						cfg, err = config.ReadFile(cfg.Path)
+						if err != nil {
+							return errors.WithStack(err)
+						}
+						log.Printf("configuration changed")
+						err = refresh(cfg)
+						if err != nil {
+							return errors.WithStack(err)
+						}
+					}
+				}
+			}
 		})
 	},
 }

@@ -20,6 +20,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/fsnotify/fsnotify"
+  packages = ["."]
+  revision = "629574ca2a5df945712d3079857300b5e4da0236"
+  version = "v1.4.2"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -61,9 +67,15 @@
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3a7927449f6f59673c06e655d27fe61ec554ae7bfa7cea61a3dd77f5b3f88634"
+  inputs-digest = "560920469e04fba3531964f480d83545ee3ce45936483c122429950189bec4a2"
   solver-name = "gps-cdcl"
   solver-version = 1

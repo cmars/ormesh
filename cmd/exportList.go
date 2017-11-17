@@ -35,7 +35,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
 			for _, export := range cfg.Node.Service.Exports {
-				fmt.Println(export)
+				fmt.Printf("%#v\n", export)
 			}
 			return nil
 		})

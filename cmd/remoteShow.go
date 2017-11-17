@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 			}
 			for _, remote := range cfg.Node.Remotes {
 				if remote.Name == remoteName {
-					fmt.Println(remote)
+					fmt.Printf("%#v\n", remote)
 					return nil
 				}
 			}

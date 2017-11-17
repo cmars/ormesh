@@ -44,7 +44,7 @@ to quickly create a Cobra application.`,
 			for _, remote := range cfg.Node.Remotes {
 				if remote.Name == remoteName {
 					for _, import_ := range remote.Imports {
-						fmt.Println(import_)
+						fmt.Printf("%#v\n", import_)
 						return nil
 					}
 				}

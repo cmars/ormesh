@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 			}
 			for _, client := range cfg.Node.Service.Clients {
 				if client.Name == clientName {
-					fmt.Println(client)
+					fmt.Printf("%#v\n", client)
 					return nil
 				}
 			}
