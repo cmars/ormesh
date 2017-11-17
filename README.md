@@ -2,43 +2,31 @@
 
 ormesh helps you build a private mesh of hosts connected through Tor.
 
-Access your services running almost anywhere, from almost anywhere else.
-Without much hassle.
+Access services running almost anywhere, from almost anywhere else.
 
 Abstract away geography and network topologies.
 
-Built on the security and durability of Tor and the Tor network.
+## Why?
 
-## Secure
+Tor is capable of traversing all kinds of networks between services and the
+clients that would consume them. Tor has a resilient infrastructure with no
+single point of failure.
 
-Services may only be accessed from authenticated clients. Unauthenticated users
-cannot access, or even detect the existence of private services. An attacker
-would need to break Tor or obtain your secrets in order to access your
-services.
+Tor hidden services can be deployed in a private, authenticated mode, which
+keeps services from being generally accessible over Tor.
 
-## Resilient
-
-Being resistant to censorship also helps Tor traverse all kinds of networks
-between your nodes. Interconnect them with no SPoFs.
-
-# What ormesh is
-
-ormesh forwards ports like SSH, but eliminates the need to set up networking
-between the hosts. As long as the hosts can connect to Tor, they can connect to
-each other.
-
-ormesh is based on private hidden services with client authentication. This can
-be done with lots of configuration; all ormesh does is help automate the work
-of distributing authentication tokens and hidden service addresses.
-
-Simple devops principles, to make interconnecting services across networks
-easy, safe and fun.
+ormesh helps manage the Tor configuration and auth token exchange necessary to
+deploy a highly resilient, network-agnostic private backplane to connect
+infrastructure.
 
 ## What kind of services?
 
-Services for individuals and small groups often require little bandwidth, and
-can be easily hosted in dense containers. With ormesh, they can be accessed
-without the hassle of setting up iptables, NAT, VPNs, TLS.
+Text-based protocols (email, messaging), sensors & actuators, home automation,
+and file synchronization are just some ideas to get you started.
+
+In general, services that require little bandwidth or tolerate latency. With
+ormesh, they can be accessed without the hassle of setting up iptables, NAT
+port forwarding, VPNs, TLS, and without relying on central rendezvous servers.
 
 # What ormesh isn't
 
@@ -48,10 +36,15 @@ ormesh shares some properties with mesh overlay networks (NAT traversal,
 end-to-end encryption, authenticated nodes), but it's not _mesh networking_ as
 conventionally defined.
 
-ormesh is not intended for operating unauthenticated anonymous hidden
-services, nor is it intended for low-latency, high bandwidth applications.
+ormesh is not intended for operating unauthenticated anonymous hidden services.
+Some measure of anonymity is an interesting side-effect of building on Tor, but
+it is not a primary goal for ormesh. Future releases may provide the option to
+reduce circuit length for improved network performance.
 
-ormesh doesn't support IPv6.
+Low-latency, high bandwidth applications will probably not perform well over
+Tor.
+
+Also keep in mind that Tor only supports TCP.
 
 # Configuring
 
@@ -72,17 +65,16 @@ service:
 
 ## Adding clients
 
-Generate a token string that a client can use to import to access this server.
+Next, generate a token string that a client can import to access this server.
 This string should be securely sent to the user of `my-MacBook` who is granted
 access.
-
-_TODO: For now, this string contains the encoded client secret. Eventually, this
-should be replaced with a nonce used to obtain that secret._
 
 ```
 $ ormesh client add my-MacBook
 Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
 ```
+
+Status shows the ports exported and the clients authorized to access them.
 
 ```
 $ ormesh status
@@ -171,14 +163,6 @@ $ ormesh agent run
 will run the agent as configured above. Configuration changes made while the agent
 is running are applied immediately.
 
-## Checking agent status
-
-```
-$ ormesh agent status
-agent:
-  - state: down
-```
-
 ## Setting up systemd
 
 Display a systemd unit file that will run ormesh, from its current installed
@@ -191,9 +175,7 @@ Description=ormesh - onion-routed mesh
 
 [Service]
 ExecStart=/home/ubuntu/bin/ormesh agent run
-Restart=on-failure
-SuccessExitStatus=0
-RestartForceExitStatus=0
+Restart=always
 
 [Install]
 WantedBy=default.target
