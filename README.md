@@ -1,23 +1,23 @@
 # ormesh - onion-routed mesh
 
-ormesh helps you build a private mesh of hosts connected through Tor.
-
-Access services running almost anywhere, from almost anywhere else.
-
-Abstract away geography and network topologies.
+ormesh helps you build private backplane to connect infrastructure through
+[Tor](https://www.torproject.org/).
 
 ## Why?
 
-Tor is capable of traversing all kinds of networks between services and the
-clients that would consume them. Tor has a resilient infrastructure with no
-single point of failure.
+To abstract away geography and network topologies.
 
-Tor hidden services can be deployed in a private, authenticated mode, which
-keeps services from being generally accessible over Tor.
+To access services running almost anywhere, from just about anywhere else.
 
-ormesh helps manage the Tor configuration and auth token exchange necessary to
-deploy a highly resilient, network-agnostic private backplane to connect
-infrastructure.
+Tor is well-suited to traversing all kinds of networks between services and the
+clients that would consume them. Tor provides a resilient infrastructure with
+no single point of failure.
+
+Tor's hidden services can be deployed in a private, authenticated mode, which
+keeps services from being generally accessible.
+
+ormesh helps manage the configuration and auth token exchange necessary to
+deploy a private backplane to connect infrastructure.
 
 ## What kind of services?
 
@@ -28,23 +28,21 @@ In general, services that require little bandwidth or tolerate latency. With
 ormesh, they can be accessed without the hassle of setting up iptables, NAT
 port forwarding, VPNs, TLS, and without relying on central rendezvous servers.
 
-# What ormesh isn't
+## What ormesh isn't
 
 ormesh is not a VPN in the conventional sense.
 
-ormesh shares some properties with mesh overlay networks (NAT traversal,
-end-to-end encryption, authenticated nodes), but it's not _mesh networking_ as
-conventionally defined.
-
 ormesh is not intended for operating unauthenticated anonymous hidden services.
-Some measure of anonymity is an interesting side-effect of building on Tor, but
-it is not a primary goal for ormesh. Future releases may provide the option to
-reduce circuit length for improved network performance.
+Anonymity is an interesting side-effect of building on Tor, but it is not a
+primary goal for ormesh, nor it is guaranteed. Users are responsible for
+evaluating ormesh (and its Tor configuration) and deciding whether it meets
+security requirements and threat models.
 
-Low-latency, high bandwidth applications will probably not perform well over
-Tor.
+Low-latency, high bandwidth applications may not perform well over ormesh's Tor
+configuration. Improvements here are possible (by trading anonymity for
+improved latency and network throughput) but not yet implemented.
 
-Also keep in mind that Tor only supports TCP.
+Also keep in mind that Tor only routes TCP traffic.
 
 # Configuring
 
