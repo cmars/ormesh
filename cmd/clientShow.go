@@ -26,13 +26,20 @@ import (
 // clientShowCmd represents the clientShow command
 var clientShowCmd = &cobra.Command{
 	Use:   "show",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
+	Short: "Show an authorized client",
+	Long: `
+Display information about a client authorization by name.
+
+Usage:
+
+	$ ormesh client show <client name>
 and usage of using your command. For example:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Arguments:
+
+  'client name' is a locally unique name that identifies the client for the
+  purpose of managing its authorization.
+`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
@@ -53,14 +60,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	clientCmd.AddCommand(clientShowCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clientShowCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clientShowCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

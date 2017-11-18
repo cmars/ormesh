@@ -24,13 +24,22 @@ import (
 // clientDeleteCmd represents the clientDelete command
 var clientDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Delete a client authorization",
+	Long: `
+Delete a client authorization.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+  This command will remove the auth token added for the named client, revoking
+  access permanently.
+
+Usage:
+
+	$ ormesh client delete <client name>
+
+Arguments:
+
+  'client name' is a locally unique name that identifies the client for the
+  purpose of managing its authorization.
+`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
@@ -58,14 +67,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	clientCmd.AddCommand(clientDeleteCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clientDeleteCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clientDeleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

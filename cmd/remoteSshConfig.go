@@ -27,7 +27,7 @@ import (
 // remoteSshConfigCmd represents the sshConfig command
 var remoteSshConfigCmd = &cobra.Command{
 	Use:   "ssh-config",
-	Short: "A brief description of your command",
+	Short: "Print ssh-config(5) stanza for a remote",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -61,14 +61,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	remoteCmd.AddCommand(remoteSshConfigCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// remoteSshConfigCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// remoteSshConfigCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

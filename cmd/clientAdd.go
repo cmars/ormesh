@@ -28,13 +28,23 @@ import (
 // clientAddCmd represents the clientAdd command
 var clientAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Add a client authorization",
+	Long: `
+Add a client authorization to exported services.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+  This command will create an auth token allowing a client to access exported
+  services. The auth token should be securely transmitted to the client. The
+  client should be deleted if this token is believed to have been compromised.
+
+Example:
+
+	$ ormesh client add my-MacBook
+	Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
+
+  Paste this token as an argument to "ormesh remote add":
+
+	$ ormesh remote add my-server Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
+`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
@@ -81,14 +91,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	clientCmd.AddCommand(clientAddCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clientAddCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clientAddCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -25,13 +25,14 @@ import (
 // clientListCmd represents the clientList command
 var clientListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "List client authorizations",
+	Long: `
+List client authorizations to exported services.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Usage:
+
+	$ ormesh client list
+`,
 	Args: cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
@@ -45,14 +46,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	clientCmd.AddCommand(clientListCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clientListCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clientListCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
