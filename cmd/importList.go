@@ -39,8 +39,8 @@ var importListCmd = &cobra.Command{
 				if remote.Name == remoteName {
 					for _, import_ := range remote.Imports {
 						fmt.Printf("%#v\n", import_)
-						return nil
 					}
+					return nil
 				}
 			}
 			return errors.Errorf("no such remote %q", remoteName)
