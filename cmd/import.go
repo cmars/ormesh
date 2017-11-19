@@ -20,7 +20,7 @@ import (
 
 // importCmd represents the import command
 var importCmd = &cobra.Command{
-	Use:   "import",
+	Use:   "import <command> ...",
 	Short: "Import commands",
 }
 

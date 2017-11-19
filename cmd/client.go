@@ -20,7 +20,7 @@ import (
 
 // clientCmd represents the client command
 var clientCmd = &cobra.Command{
-	Use:   "client",
+	Use:   "client <command> ...",
 	Short: "Client commands",
 }
 

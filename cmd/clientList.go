@@ -26,14 +26,7 @@ import (
 var clientListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List client authorizations",
-	Long: `
-List client authorizations to exported services.
-
-Usage:
-
-	$ ormesh client list
-`,
-	Args: cobra.ExactArgs(0),
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
 			for _, client := range cfg.Node.Service.Clients {

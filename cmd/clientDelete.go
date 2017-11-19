@@ -23,24 +23,10 @@ import (
 
 // clientDeleteCmd represents the clientDelete command
 var clientDeleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete <client name>",
 	Short: "Delete a client authorization",
-	Long: `
-Delete a client authorization.
-
-  This command will remove the auth token added for the named client, revoking
-  access permanently.
-
-Usage:
-
-	$ ormesh client delete <client name>
-
-Arguments:
-
-  'client name' is a locally unique name that identifies the client for the
-  purpose of managing its authorization.
-`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Delete a client authorization, revoking access permanently.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
 			clientName := args[0]

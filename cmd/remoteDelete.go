@@ -23,15 +23,9 @@ import (
 
 // remoteDeleteCmd represents the remoteDelete command
 var remoteDeleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete <remote name>",
 	Short: "Delete a service remote",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
 			remoteName := args[0]

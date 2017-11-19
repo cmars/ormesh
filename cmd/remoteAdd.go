@@ -23,14 +23,10 @@ import (
 
 // remoteAddCmd represents the remoteAdd command
 var remoteAddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add <remote name> <client token>",
 	Short: "Add a service remote",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Add a service remote. The client token is the value that was displayed on the
+remote with the command 'ormesh client add'.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {

@@ -23,14 +23,10 @@ import (
 
 // exportAddCmd represents the exportAdd command
 var exportAddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add [bind addr:]port",
 	Short: "Add a service export",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Add a service to export as a hidden service. Bind address defaults to 127.0.0.1
+if not specified.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {

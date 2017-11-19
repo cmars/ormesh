@@ -25,22 +25,9 @@ import (
 
 // clientShowCmd represents the clientShow command
 var clientShowCmd = &cobra.Command{
-	Use:   "show",
+	Use:   "show <client name>",
 	Short: "Show an authorized client",
-	Long: `
-Display information about a client authorization by name.
-
-Usage:
-
-	$ ormesh client show <client name>
-and usage of using your command. For example:
-
-Arguments:
-
-  'client name' is a locally unique name that identifies the client for the
-  purpose of managing its authorization.
-`,
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
 			clientName := args[0]

@@ -27,24 +27,17 @@ import (
 
 // clientAddCmd represents the clientAdd command
 var clientAddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add <client name>",
 	Short: "Add a client authorization",
-	Long: `
-Add a client authorization to exported services.
+	Long: `Create an auth token allowing a client to access exported services. The token
+should be securely transmitted to the client.`,
+	Example: `
+  $ ormesh client add my-MacBook
+  Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
 
-  This command will create an auth token allowing a client to access exported
-  services. The auth token should be securely transmitted to the client. The
-  client should be deleted if this token is believed to have been compromised.
+  Then paste this token as an argument to 'ormesh remote add':
 
-Example:
-
-	$ ormesh client add my-MacBook
-	Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
-
-  Paste this token as an argument to "ormesh remote add":
-
-	$ ormesh remote add my-server Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
-`,
+  $ ormesh remote add my-server Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {

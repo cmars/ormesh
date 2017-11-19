@@ -20,7 +20,7 @@ import (
 
 // agentCmd represents the agent command
 var agentCmd = &cobra.Command{
-	Use:   "agent",
+	Use:   "agent <command> ...",
 	Short: "Agent commands",
 }
 

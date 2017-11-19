@@ -32,17 +32,10 @@ import (
 var agentRunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the ormesh agent",
-	Long: `
-Launch and operate a tor subprocess, implementing the configured service
-policies.
-
-  Configuration is automatically refreshed and applied when the ormesh
-  configuration file is modified or a SIGHUP received.
-
-  This command will not exit until an interrupt signal is received
-  or an error is encountered.
-
-`,
+	Long: `The agent launches and operate a tor subprocess, implementing the configured
+service policies. Configuration is automatically refreshed and applied when the
+ormesh configuration file is modified or a SIGHUP received. This command will
+not exit until an interrupt signal is received or an error is encountered.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfig(func(cfg *config.Config) error {
 			a, err := agent.New(cfg)

@@ -20,7 +20,7 @@ import (
 
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
-	Use:   "export",
+	Use:   "export <command> ...",
 	Short: "Export commands",
 }
 

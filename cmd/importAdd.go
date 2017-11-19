@@ -26,15 +26,9 @@ import (
 
 // importAddCmd represents the importAdd command
 var importAddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add <remote name> <remote port> <local bind addr>:<local port>",
 	Short: "Add a service import",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(3),
+	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
 			remoteName, remotePort, localAddr := args[0], args[1], args[2]

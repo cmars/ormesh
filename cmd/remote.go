@@ -20,7 +20,7 @@ import (
 
 // remoteCmd represents the remote command
 var remoteCmd = &cobra.Command{
-	Use:   "remote",
+	Use:   "remote <command> ...",
 	Short: "Remote commands",
 }
 
