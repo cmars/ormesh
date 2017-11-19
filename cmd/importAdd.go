@@ -67,7 +67,7 @@ var importAddCmd = &cobra.Command{
 				return errors.Errorf("no such remote: %q", remoteName)
 			}
 			for i := range cfg.Node.Remotes[remoteIndex].Imports {
-				if cfg.Node.Remotes[i].Imports[i] == newImport {
+				if cfg.Node.Remotes[remoteIndex].Imports[i] == newImport {
 					return nil
 				}
 			}
