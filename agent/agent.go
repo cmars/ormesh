@@ -104,7 +104,15 @@ func generateControlPass(cfg *config.Config) (string, string, error) {
 		return "", "", errors.Wrap(err, "failed to generate password")
 	}
 	password := base64.URLEncoding.EncodeToString(binpass[:])
-	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, "--hash-password", password)
+	// On windows, geoip files need to be specified with an absolute path or
+	// they generate warnings that get mixed up with stdout.
+	geoIPFile := filepath.Join(cfg.Dir, "tor", "geoip")
+	geoIPv6File := filepath.Join(cfg.Dir, "tor", "geoip6")
+	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
+		"--GeoIPFile", geoIPFile,
+		"--GeoIPv6File", geoIPv6File,
+		"--hash-password", password,
+	)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err = cmd.Run()
