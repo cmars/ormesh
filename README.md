@@ -44,6 +44,38 @@ improved latency and network throughput) but not yet implemented.
 
 Also keep in mind that Tor only routes TCP traffic.
 
+# Installing
+
+[Install Go](https://golang.org/doc/install).
+
+Add $GOPATH/bin to your $PATH.
+
+Download and build ormesh.
+
+    go get -u github.com/cmars/ormesh
+
+## macOS
+
+[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). On macOS,
+ormesh will launch the `tor.real` executable bundled with the Tor Browser.
+
+## Others
+
+[Install Tor (standalone)](https://www.torproject.org/download/download-unix.html.en) from
+official packages for your platform.
+
+## (Experimental) Ubuntu 16.04 LTS amd64
+
+    sudo snap install ormesh --edge
+
+The snap packaging bundles Tor from official archives and operates it in a
+sandbox. Why it's experimental quality:
+
+- Needs an automated build set up to track official Tor releases. Until then,
+  it's possible that the version of Tor bundled in the package is out-of-date.
+- Installing snaps into containers may not work, depending on the container
+  image, host kernel and other possible factors.
+
 # Configuring
 
 ## Exporting local services
@@ -61,9 +93,15 @@ service:
     - 127.0.0.1:80
 ```
 
+You can also export services on other hosts.
+
+```
+$ ormesh export add 192.168.1.19:8000
+```
+
 ## Adding clients
 
-Next, generate a token string that a client can import to access this server.
+Generate a token string that a client can import to access exported services.
 This string should be securely sent to the user of `my-MacBook` who is granted
 access.
 
@@ -121,8 +159,9 @@ Host website
 
 ## Importing remote services
 
-Local port forwarding to the remote service. Local port 10022 will forward to
-port 22 on the remote.
+Set up local port forwarding to remote services with _imports_.
+
+Forward local port 10022 to port 22 on the remote:
 
 ```
 $ ormesh import add website 22 127.0.0.1:10022
@@ -135,16 +174,15 @@ remotes:
       remote-port: 22
 ```
 
-Public ingress to a remote service. Useful for circumventing inbound port
-blocks where the service is running. For example, you want to physically locate
-your email server at home, but your ISP blocks SMTP and you lack a static IP
-address. Import the service from a cloud instance with a public IP and DNS.
+Listen on all addresses to create a public ingress to a remote service. Useful
+for circumventing inbound port blocks where the service is running. For
+example, you want to physically locate your email server in a mobile camper,
+your ISP blocks SMTP inbound, and your IP address changes often. Import your
+services from a cloud instance with a public IP and DNS.
 
 ```
 $ ormesh import add mailinabox 25 0.0.0.0:25
-$ ormesh import add mailinabox 80 0.0.0.0:80
-$ ormesh import add mailinabox 443 0.0.0.0:443
-$ ormesh import add mailinabox 993 0.0.0.0:993
+$ ormesh import add mailinabox 587 0.0.0.0:587
 ```
 
 # Operating
@@ -172,7 +210,7 @@ $ ormesh agent systemd-unit --user
 Description=ormesh - onion-routed mesh
 
 [Service]
-ExecStart=/home/ubuntu/bin/ormesh agent run
+ExecStart=/path/to/ormesh agent run
 Restart=always
 
 [Install]
