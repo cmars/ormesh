@@ -62,13 +62,17 @@ Log notice stdout
 			return nil, errors.Wrapf(err, "failed to create torrc")
 		}
 	}
+	geoIPFile := filepath.Join(cfg.Dir, "tor", "geoip")
+	geoIPv6File := filepath.Join(cfg.Dir, "tor", "geoip6")
 	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
 		"-f", torrcPath,
 		"--Log", "notice stdout",
 		"--SocksPort", cfg.Node.Agent.SocksAddr,
 		"--ControlPort", cfg.Node.Agent.ControlAddr,
-		"--DataDirectory", dataDir,
 		"--HashedControlPassword", controlHash,
+		"--DataDirectory", dataDir,
+		"--GeoIPFile", geoIPFile,
+		"--GeoIPv6File", geoIPv6File,
 	)
 	cmd.Dir = dataDir
 	cmd.Stdout = os.Stdout
