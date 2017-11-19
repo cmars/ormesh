@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/cmars/orc/control"
 	"github.com/pkg/errors"
+	"golang.org/x/net/proxy"
 
 	"github.com/cmars/ormesh/config"
 )
@@ -28,6 +30,14 @@ type Agent struct {
 	controlPass      string
 	conn             *control.Conn
 	cmd              *exec.Cmd
+	importers        []importer
+}
+
+type importer struct {
+	config.Import
+	RemoteAddr string
+	SocksAddr  string
+	l          net.Listener
 }
 
 func New(cfg *config.Config) (*Agent, error) {
@@ -63,12 +73,23 @@ Log notice stdout
 	cmd.Dir = dataDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	var importers []importer
+	for _, remote := range cfg.Node.Remotes {
+		for _, import_ := range remote.Imports {
+			importers = append(importers, importer{
+				RemoteAddr: remote.Address,
+				Import:     import_,
+				SocksAddr:  cfg.Node.Agent.SocksAddr,
+			})
+		}
+	}
 	return &Agent{
 		dataDir:          dataDir,
 		hiddenServiceDir: hiddenServiceDir,
 		controlAddr:      cfg.Node.Agent.ControlAddr,
 		controlPass:      controlPass,
 		cmd:              cmd,
+		importers:        importers,
 	}, nil
 }
 
@@ -112,9 +133,75 @@ func (a *Agent) Start() error {
 			return errors.Wrap(err, "control auth failed")
 		}
 		a.conn = conn
+		err = a.startImports()
+		if err != nil {
+			return errors.Wrap(err, "local imports failed to start")
+		}
 		return nil
 	}
 	return errors.Wrap(err, "control connect failed")
+}
+
+func (a *Agent) startImports() error {
+	for _, i := range a.importers {
+		err := i.start()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
+func (i *importer) start() error {
+	var err error
+	i.l, err = net.Listen("tcp", fmt.Sprintf("%s:%d", i.LocalAddr, i.LocalPort))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	dialer, err := proxy.SOCKS5("tcp", i.SocksAddr, nil, proxy.Direct)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	handle := func(conn net.Conn) {
+		defer conn.Close()
+		remoteConn, err := dialer.Dial("tcp", fmt.Sprintf("%s:%d", i.RemoteAddr, i.RemotePort))
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer remoteConn.Close()
+		fwd1 := make(chan struct{})
+		go func() {
+			_, err := io.Copy(conn, remoteConn)
+			if err != nil {
+				log.Println(err)
+			}
+			close(fwd1)
+		}()
+		fwd2 := make(chan struct{})
+		go func() {
+			_, err := io.Copy(remoteConn, conn)
+			if err != nil {
+				log.Println(err)
+			}
+			close(fwd2)
+		}()
+		select {
+		case <-fwd1:
+		case <-fwd2:
+		}
+	}
+	go func() {
+		for {
+			conn, err := i.l.Accept()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			go handle(conn)
+		}
+	}()
+	return nil
 }
 
 func (a *Agent) Stop() error {

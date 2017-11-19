@@ -10,7 +10,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/cmars/orc"
-  packages = ["control","tor"]
+  packages = ["control"]
   revision = "b4069341005cef1cff4d11e071cdac7dae256351"
 
 [[projects]]
@@ -69,6 +69,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["proxy"]
+  revision = "9dfe39835686865bff950a07b394c12a98ddc811"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
   revision = "bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c"
@@ -76,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "560920469e04fba3531964f480d83545ee3ce45936483c122429950189bec4a2"
+  inputs-digest = "5a742cdd8c7f06ec8727bfe3e9b16bb7c55aaf457d388c2abe53bad62c8149b5"
   solver-name = "gps-cdcl"
   solver-version = 1
