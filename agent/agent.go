@@ -1,3 +1,17 @@
+// Copyright © 2017 Casey Marshall
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package agent
 
 import (
@@ -12,7 +26,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,9 +75,11 @@ func New(cfg *config.Config) (*Agent, error) {
 Log notice stdout
 `), 0600)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create torrc")
+			return nil, errors.Wrap(err, "failed to create torrc")
 		}
 	}
+
+	var importers []importer
 	geoIPFile := filepath.Join(cfg.Dir, "tor", "geoip")
 	geoIPv6File := filepath.Join(cfg.Dir, "tor", "geoip6")
 	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
@@ -77,7 +95,22 @@ Log notice stdout
 	cmd.Dir = dataDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	var importers []importer
+	if cfg.Node.Agent.TorUser != "" {
+		if os.Getuid() != 0 {
+			return nil, errors.Errorf("cannot run tor as %q: not root", cfg.Node.Agent.TorUser)
+		}
+		uid, gid, err := lookupUser(cfg.Node.Agent.TorUser)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		err = chownR(dataDir, uid, gid)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to set ownership on %q", dataDir)
+		}
+		cmd.SysProcAttr = sudoSysProcAttr(uid, gid)
+	} else {
+		cmd.SysProcAttr = normalSysProcAttr()
+	}
 	for _, remote := range cfg.Node.Remotes {
 		for _, import_ := range remote.Imports {
 			importers = append(importers, importer{
@@ -339,4 +372,35 @@ func (a *Agent) UpdateRemotes(node *config.Node) error {
 		return errors.Wrap(err, "failed to save configuration")
 	}
 	return nil
+}
+
+func chownR(path string, uid, gid int) error {
+	if _, err := os.Stat(path); err != nil {
+		return errors.WithStack(err)
+	}
+	return filepath.Walk(path, func(name string, info os.FileInfo, err error) error {
+		if err == nil {
+			err = os.Chown(name, uid, gid)
+		}
+		return err
+	})
+}
+
+func lookupUser(username string) (int, int, error) {
+	fail := func(err error) (int, int, error) {
+		return -1, -1, err
+	}
+	u, err := user.Lookup(username)
+	if err != nil {
+		return fail(errors.WithStack(err))
+	}
+	uid, err := strconv.Atoi(u.Uid)
+	if err != nil {
+		return fail(errors.WithStack(err))
+	}
+	gid, err := strconv.Atoi(u.Gid)
+	if err != nil {
+		return fail(errors.WithStack(err))
+	}
+	return uid, gid, nil
 }
