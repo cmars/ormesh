@@ -59,7 +59,6 @@ type Import struct {
 
 type Agent struct {
 	TorBinaryPath string
-	TorUser       string
 	SocksAddr     string
 	ControlAddr   string
 }

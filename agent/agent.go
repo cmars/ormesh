@@ -26,9 +26,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -62,7 +60,7 @@ func New(cfg *config.Config) (*Agent, error) {
 		return nil, errors.Wrapf(err, "failed to create directory %q", dataDir)
 	}
 	hiddenServiceDir := filepath.Join(cfg.Dir, "tor", "services")
-	if err := os.MkdirAll(dataDir, 0700); err != nil {
+	if err := os.MkdirAll(hiddenServiceDir, 0700); err != nil {
 		return nil, errors.Wrapf(err, "failed to create directory %q", hiddenServiceDir)
 	}
 	controlPass, controlHash, err := generateControlPass(cfg)
@@ -80,37 +78,18 @@ Log notice stdout
 	}
 
 	var importers []importer
-	geoIPFile := filepath.Join(cfg.Dir, "tor", "geoip")
-	geoIPv6File := filepath.Join(cfg.Dir, "tor", "geoip6")
-	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
+	args := []string{
 		"-f", torrcPath,
-		"--Log", "notice stdout",
+		"--Log", "notice stderr",
 		"--SocksPort", cfg.Node.Agent.SocksAddr,
 		"--ControlPort", cfg.Node.Agent.ControlAddr,
 		"--HashedControlPassword", controlHash,
 		"--DataDirectory", dataDir,
-		"--GeoIPFile", geoIPFile,
-		"--GeoIPv6File", geoIPv6File,
-	)
+	}
+	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, args...)
 	cmd.Dir = dataDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if cfg.Node.Agent.TorUser != "" {
-		if os.Getuid() != 0 {
-			return nil, errors.Errorf("cannot run tor as %q: not root", cfg.Node.Agent.TorUser)
-		}
-		uid, gid, err := lookupUser(cfg.Node.Agent.TorUser)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		err = chownR(dataDir, uid, gid)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to set ownership on %q", dataDir)
-		}
-		cmd.SysProcAttr = sudoSysProcAttr(uid, gid)
-	} else {
-		cmd.SysProcAttr = normalSysProcAttr()
-	}
 	for _, remote := range cfg.Node.Remotes {
 		for _, import_ := range remote.Imports {
 			importers = append(importers, importer{
@@ -137,19 +116,20 @@ func generateControlPass(cfg *config.Config) (string, string, error) {
 		return "", "", errors.Wrap(err, "failed to generate password")
 	}
 	password := base64.URLEncoding.EncodeToString(binpass[:])
-	// On windows, geoip files need to be specified with an absolute path or
-	// they generate warnings that get mixed up with stdout.
-	geoIPFile := filepath.Join(cfg.Dir, "tor", "geoip")
-	geoIPv6File := filepath.Join(cfg.Dir, "tor", "geoip6")
-	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath,
-		"--GeoIPFile", geoIPFile,
-		"--GeoIPv6File", geoIPv6File,
+	args := []string{
+		"--DataDirectory", filepath.Join(cfg.Dir, "tor", "data"),
+		"--GeoIPFile", filepath.Join(cfg.Dir, "tor", "data", "geoip"),
+		"--GeoIPv6File", filepath.Join(cfg.Dir, "tor", "data", "geoip6"),
 		"--hash-password", password,
-	)
+	}
+	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
+		log.Printf("cmd: %#v", cmd)
+		log.Printf("stdout: %s", out.String())
 		return "", "", errors.Wrap(err, "failed to obtain hashed control password")
 	}
 	return password, strings.TrimSpace(out.String()), nil
@@ -203,12 +183,15 @@ func (i *importer) start() error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	log.Printf("started listener %s:%d", i.LocalAddr, i.LocalPort)
 	dialer, err := proxy.SOCKS5("tcp", i.SocksAddr, nil, proxy.Direct)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	handle := func(conn net.Conn) {
-		defer conn.Close()
+	log.Printf("socks dialer ready")
+	handle := func(c net.Conn) {
+		log.Printf("handle connection from %s", c.RemoteAddr())
+		defer c.Close()
 		remoteConn, err := dialer.Dial("tcp", fmt.Sprintf("%s:%d", i.RemoteAddr, i.RemotePort))
 		if err != nil {
 			log.Println(err)
@@ -217,7 +200,7 @@ func (i *importer) start() error {
 		defer remoteConn.Close()
 		fwd1 := make(chan struct{})
 		go func() {
-			_, err := io.Copy(conn, remoteConn)
+			_, err := io.Copy(c, remoteConn)
 			if err != nil {
 				log.Println(err)
 			}
@@ -225,7 +208,7 @@ func (i *importer) start() error {
 		}()
 		fwd2 := make(chan struct{})
 		go func() {
-			_, err := io.Copy(remoteConn, conn)
+			_, err := io.Copy(remoteConn, c)
 			if err != nil {
 				log.Println(err)
 			}
@@ -238,12 +221,12 @@ func (i *importer) start() error {
 	}
 	go func() {
 		for {
-			conn, err := i.l.Accept()
+			c, err := i.l.Accept()
 			if err != nil {
-				log.Println(err)
+				log.Printf("listener exiting on error: %v", err)
 				return
 			}
-			go handle(conn)
+			go handle(c)
 		}
 	}()
 	return nil
@@ -372,35 +355,4 @@ func (a *Agent) UpdateRemotes(node *config.Node) error {
 		return errors.Wrap(err, "failed to save configuration")
 	}
 	return nil
-}
-
-func chownR(path string, uid, gid int) error {
-	if _, err := os.Stat(path); err != nil {
-		return errors.WithStack(err)
-	}
-	return filepath.Walk(path, func(name string, info os.FileInfo, err error) error {
-		if err == nil {
-			err = os.Chown(name, uid, gid)
-		}
-		return err
-	})
-}
-
-func lookupUser(username string) (int, int, error) {
-	fail := func(err error) (int, int, error) {
-		return -1, -1, err
-	}
-	u, err := user.Lookup(username)
-	if err != nil {
-		return fail(errors.WithStack(err))
-	}
-	uid, err := strconv.Atoi(u.Uid)
-	if err != nil {
-		return fail(errors.WithStack(err))
-	}
-	gid, err := strconv.Atoi(u.Gid)
-	if err != nil {
-		return fail(errors.WithStack(err))
-	}
-	return uid, gid, nil
 }
