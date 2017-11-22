@@ -13,7 +13,7 @@ tmpdir=$(mktemp -d)
 trap "rm -rf ${tmpdir}" EXIT
 
 cd ${tmpdir}
-wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v0.1.5/ormesh_0.1.5_linux_amd64.tar.gz
+wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v0.1.6/ormesh_0.1.6_linux_amd64.tar.gz
 tar xf ormesh.tar.gz
 sudo cp ormesh /usr/bin/ormesh
 /usr/bin/ormesh agent privbind
