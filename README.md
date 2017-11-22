@@ -77,6 +77,8 @@ This will:
 - allow ormesh to bind privlieged ports <1024
 - install an ormesh systemd service
 
+Tor doesn't like running as root, so don't install as root.
+
 # Configuring
 
 ## Exporting local services
