@@ -67,7 +67,7 @@ platforms. Windows support is experimental.
 
 For the lazy on Ubuntu 16.04 LTS amd64:
 
-    curl https://git.io/vFN94 -sSf | bash
+    curl https://git.io/vFN94 -sSfL | bash
 
 This will [install Tor](https://www.torproject.org/download/download-unix.html.en) from official
 torproject.org packages.
