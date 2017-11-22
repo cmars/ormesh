@@ -1,13 +1,16 @@
 # ormesh - onion-routed mesh
 
-ormesh helps you build private backplane to connect infrastructure through
-[Tor](https://www.torproject.org/).
+ormesh helps you connect services through [Tor](https://www.torproject.org/).
 
 ## Why?
 
-To abstract away geography and network topologies.
+Abstract away geography and network topologies.
 
-To access services running almost anywhere, from just about anywhere else.
+Disregard container networking, NATs, firewall policies, possibly even traffic
+shaping and protocol filtering, if you throw bridges and obfsproxy into the
+mix.
+
+Access services running almost anywhere, from just about anywhere else.
 
 Tor is well-suited to traversing all kinds of networks between services and the
 clients that would consume them. Tor provides a resilient infrastructure with
@@ -21,8 +24,8 @@ deploy a private backplane to connect infrastructure.
 
 ## What kind of services?
 
-Text-based protocols (email, messaging), sensors & actuators, home automation,
-and file synchronization are just some ideas to get you started.
+HTTP, email, messaging, sensors & actuators, home automation, and file
+synchronization are just some ideas to get you started.
 
 In general, services that require little bandwidth or tolerate latency. With
 ormesh, they can be accessed without the hassle of setting up iptables, NAT
