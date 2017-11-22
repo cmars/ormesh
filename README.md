@@ -46,6 +46,8 @@ Also keep in mind that Tor only routes TCP traffic.
 
 # Installing
 
+Download an ormesh binary tarball [release](releases) or build from source:
+
 [Install Go](https://golang.org/doc/install).
 
 Add $GOPATH/bin to your $PATH.
@@ -54,27 +56,21 @@ Download and build ormesh.
 
     go get -u github.com/cmars/ormesh
 
-## macOS
+## macOS & Windows
 
-[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). On macOS,
-ormesh will launch the `tor.real` executable bundled with the Tor Browser.
+[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en).
 
-## Others
+ormesh will operate the instance of Tor bundled with the Tor Browser on these
+platforms. Windows support is experimental.
 
-[Install Tor (standalone)](https://www.torproject.org/download/download-unix.html.en) from
-official packages for your platform.
+## Linux
 
-## (Experimental) Ubuntu 16.04 LTS amd64
+For the lazy on Ubuntu 16.04 LTS amd64:
 
-    sudo snap install ormesh --edge
+    curl https://git.io/vFN94 | sudo bash
 
-The snap packaging bundles Tor from official archives and operates it in a
-sandbox. Why it's experimental quality:
-
-- Needs an automated build set up to track official Tor releases. Until then,
-  it's possible that the version of Tor bundled in the package is out-of-date.
-- Installing snaps into containers may not work, depending on the container
-  image, host kernel and other possible factors.
+This will [install Tor](https://www.torproject.org/download/download-unix.html.en) from official
+torproject.org packages.
 
 # Configuring
 
@@ -181,6 +177,7 @@ your ISP blocks SMTP inbound, and your IP address changes often. Import your
 services from a cloud instance with a public IP and DNS.
 
 ```
+$ ormesh agent privbind
 $ ormesh import add mailinabox 25 0.0.0.0:25
 $ ormesh import add mailinabox 587 0.0.0.0:587
 ```
@@ -205,13 +202,14 @@ Display a systemd unit file that will run ormesh, from its current installed
 binary path.
 
 ```
-$ ormesh agent systemd-unit --user
+$ ormesh agent systemd
 [Unit]
 Description=ormesh - onion-routed mesh
 
 [Service]
 ExecStart=/path/to/ormesh agent run
 Restart=always
+User=ubuntu
 
 [Install]
 WantedBy=default.target
