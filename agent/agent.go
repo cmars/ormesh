@@ -42,6 +42,7 @@ type Agent struct {
 	hiddenServiceDir string
 	controlAddr      string
 	controlPass      string
+	controlCookie    []byte
 	conn             *control.Conn
 	cmd              *exec.Cmd
 	forwarders       []*forwarder
@@ -57,11 +58,19 @@ type forwarder struct {
 }
 
 func New(cfg *config.Config) (*Agent, error) {
-	dataDir := filepath.Join(cfg.Dir, "tor", "data")
+	if cfg.Node.Agent.UseTorBrowser {
+		return newTorBrowserAgent(cfg)
+	} else {
+		return newStandaloneAgent(cfg)
+	}
+}
+
+func newStandaloneAgent(cfg *config.Config) (*Agent, error) {
+	dataDir := cfg.Node.Agent.TorDataDir
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return nil, errors.Wrapf(err, "failed to create directory %q", dataDir)
 	}
-	hiddenServiceDir := filepath.Join(cfg.Dir, "tor", "services")
+	hiddenServiceDir := cfg.Node.Agent.TorServicesDir
 	if err := os.MkdirAll(hiddenServiceDir, 0700); err != nil {
 		return nil, errors.Wrapf(err, "failed to create directory %q", hiddenServiceDir)
 	}
@@ -69,7 +78,7 @@ func New(cfg *config.Config) (*Agent, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate control password hash")
 	}
-	torrcPath := filepath.Join(cfg.Dir, "tor", "torrc")
+	torrcPath := filepath.Join(dataDir, "torrc")
 	if _, err := os.Stat(torrcPath); err != nil && os.IsNotExist(err) {
 		err := ioutil.WriteFile(torrcPath, []byte(`
 Log notice stdout
@@ -117,6 +126,41 @@ Log notice stdout
 	}, nil
 }
 
+func newTorBrowserAgent(cfg *config.Config) (*Agent, error) {
+	hiddenServiceDir := cfg.Node.Agent.TorServicesDir
+	if err := os.MkdirAll(hiddenServiceDir, 0700); err != nil {
+		return nil, errors.Wrapf(err, "failed to create directory %q", hiddenServiceDir)
+	}
+	controlCookie, err := ioutil.ReadFile(cfg.Node.Agent.ControlCookie)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read control auth cookie")
+	}
+
+	var forwarders []*forwarder
+	dialer, err := proxy.SOCKS5("tcp", cfg.Node.Agent.SocksAddr, nil, proxy.Direct)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	for _, remote := range cfg.Node.Remotes {
+		for _, import_ := range remote.Imports {
+			forwarders = append(forwarders, &forwarder{
+				dialer:     dialer,
+				remoteAddr: remote.Address,
+				remotePort: import_.RemotePort,
+				localAddr:  import_.LocalAddr,
+				localPort:  import_.LocalPort,
+			})
+		}
+	}
+	return &Agent{
+		dataDir:          cfg.Node.Agent.TorDataDir,
+		hiddenServiceDir: hiddenServiceDir,
+		controlAddr:      cfg.Node.Agent.ControlAddr,
+		controlCookie:    controlCookie,
+		forwarders:       forwarders,
+	}, nil
+}
+
 func generateControlPass(cfg *config.Config) (string, string, error) {
 	var binpass [32]byte
 	_, err := rand.Reader.Read(binpass[:])
@@ -148,11 +192,11 @@ func (a *Agent) Start() error {
 		conn *control.Conn
 		err  error
 	)
-
-	log.Printf("%#v", a.cmd)
-	err = a.cmd.Start()
-	if err != nil {
-		return errors.Wrap(err, "failed to start")
+	if a.cmd != nil {
+		err = a.cmd.Start()
+		if err != nil {
+			return errors.Wrap(err, "failed to start")
+		}
 	}
 	// Try to connect for 45 seconds cumulative
 	for s := 1; s < 10; s++ {
@@ -161,9 +205,16 @@ func (a *Agent) Start() error {
 			time.Sleep(time.Duration(s) * time.Second)
 			continue
 		}
-		err = conn.Auth(a.controlPass)
-		if err != nil {
-			return errors.Wrap(err, "control auth failed")
+		if a.controlCookie != nil {
+			err = conn.AuthCookie(a.controlCookie)
+			if err != nil {
+				return errors.Wrap(err, "control auth failed")
+			}
+		} else {
+			err = conn.Auth(a.controlPass)
+			if err != nil {
+				return errors.Wrap(err, "control auth failed")
+			}
 		}
 		a.conn = conn
 		err = a.startForwarding()
@@ -235,6 +286,9 @@ func (f *forwarder) forward(dest, source *net.TCPConn) {
 }
 
 func (a *Agent) Stop() error {
+	if a.cmd == nil {
+		return nil
+	}
 	err := a.cmd.Process.Kill()
 	if err != nil {
 		return errors.Wrap(err, "failed to kill process")

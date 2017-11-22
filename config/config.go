@@ -58,16 +58,30 @@ type Import struct {
 }
 
 type Agent struct {
-	TorBinaryPath string
-	SocksAddr     string
-	ControlAddr   string
+	TorBinaryPath  string
+	TorrcPath      string
+	TorDataDir     string
+	TorServicesDir string
+	SocksAddr      string
+	ControlAddr    string
+	ControlCookie  string
+	UseTorBrowser  bool
 }
 
 func (c *Config) defaults(md *toml.MetaData) {
-	if !md.IsDefined("Node", "Agent", "SocksAddr") {
+	if c.Node.Agent.TorDataDir == "" && !md.IsDefined("Node", "Agent", "TorDataDir") {
+		c.Node.Agent.TorDataDir = filepath.Join(c.Dir, "tor", "data")
+	}
+	if c.Node.Agent.TorrcPath == "" && !md.IsDefined("Node", "Agent", "TorrcPath") {
+		c.Node.Agent.TorrcPath = filepath.Join(c.Node.Agent.TorDataDir, "torrc")
+	}
+	if c.Node.Agent.TorServicesDir == "" && !md.IsDefined("Node", "Agent", "TorServicesDir") {
+		c.Node.Agent.TorServicesDir = filepath.Join(c.Node.Agent.TorDataDir, "services")
+	}
+	if c.Node.Agent.SocksAddr == "" && !md.IsDefined("Node", "Agent", "SocksAddr") {
 		c.Node.Agent.SocksAddr = "127.0.0.1:9250"
 	}
-	if !md.IsDefined("Node", "Agent", "ControlAddr") {
+	if c.Node.Agent.ControlAddr == "" && !md.IsDefined("Node", "Agent", "ControlAddr") {
 		c.Node.Agent.ControlAddr = "127.0.0.1:9251"
 	}
 }

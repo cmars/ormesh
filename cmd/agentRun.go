@@ -61,6 +61,17 @@ not exit until an interrupt signal is received or an error is encountered.`,
 			}
 			refresh(cfg)
 
+			if cfg.Node.Agent.UseTorBrowser {
+				var nImports int
+				for _, remote := range cfg.Node.Remotes {
+					nImports += len(remote.Imports)
+				}
+				if nImports == 0 {
+					log.Println("no imports to forward, exiting")
+					return nil
+				}
+			}
+
 			watcher, err := fsnotify.NewWatcher()
 			if err != nil {
 				return errors.WithStack(err)
