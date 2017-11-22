@@ -10,12 +10,12 @@ sudo apt upgrade -yy
 sudo apt install -y tor deb.torproject.org-keyring
 
 tmpdir=$(mktemp -d)
-trap "rm -rf ${tmpdir}"
+trap "rm -rf ${tmpdir}" EXIT
 
 cd ${tmpdir}
 wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v0.1.5/ormesh_0.1.5_linux_amd64.tar.gz
 tar xf ormesh.tar.gz
 sudo cp ormesh /usr/bin/ormesh
-sudo /usr/bin/ormesh agent privbind
+/usr/bin/ormesh agent privbind
 /usr/bin/ormesh agent systemd | sudo tee /etc/systemd/system/ormesh.service
 
