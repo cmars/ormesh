@@ -69,8 +69,13 @@ For the lazy on Ubuntu 16.04 LTS amd64:
 
     curl https://git.io/vFN94 -sSfL | bash
 
-This will [install Tor](https://www.torproject.org/download/download-unix.html.en) from official
-torproject.org packages.
+This will:
+
+- [install Tor](https://www.torproject.org/download/download-unix.html.en) from official
+  torproject.org packages
+- download and install `/usr/bin/ormesh` from [releases](releases)
+- allow ormesh to bind privlieged ports <1024
+- install an ormesh systemd service
 
 # Configuring
 
