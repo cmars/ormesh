@@ -42,7 +42,7 @@ var remoteSshConfigCmd = &cobra.Command{
 			for _, remote := range cfg.Node.Remotes {
 				if remote.Name == remoteName {
 					fmt.Printf(`Host %s
-  ProxyCommand nc -X 5 -x 127.0.0.1:%d %%h %%p
+  ProxyCommand nc -X 5 -x 127.0.0.1:%s %%h %%p
   Hostname %s
 `, remoteName, socksPort, remote.Address)
 					return nil
