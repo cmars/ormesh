@@ -16,6 +16,12 @@ cd ${tmpdir}
 wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v0.1.6/ormesh_0.1.6_linux_amd64.tar.gz
 tar xf ormesh.tar.gz
 sudo cp ormesh /usr/bin/ormesh
-/usr/bin/ormesh agent privbind
-/usr/bin/ormesh agent systemd | sudo tee /etc/systemd/system/ormesh.service
+/usr/bin/ormesh agent privbind || echo "warning: setting privileged port bind capability failed"
 
+if [ "$EUID" -eq 0 ]; then
+	id -u ubuntu
+	sudo su - ubuntu -c \
+		'/usr/bin/ormesh agent systemd' | tee /etc/systemd/system/ormesh.service
+else
+	/usr/bin/ormesh agent systemd | sudo tee /etc/systemd/system/ormesh.service
+fi
