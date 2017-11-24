@@ -16,9 +16,6 @@ package agent
 
 import (
 	"bufio"
-	"bytes"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,8 +38,6 @@ type Agent struct {
 	dataDir          string
 	hiddenServiceDir string
 	controlAddr      string
-	controlPass      string
-	controlCookie    []byte
 	conn             *control.Conn
 	cmd              *exec.Cmd
 	forwarders       []*forwarder
@@ -74,10 +69,6 @@ func newStandaloneAgent(cfg *config.Config) (*Agent, error) {
 	if err := os.MkdirAll(hiddenServiceDir, 0700); err != nil {
 		return nil, errors.Wrapf(err, "failed to create directory %q", hiddenServiceDir)
 	}
-	controlPass, controlHash, err := generateControlPass(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate control password hash")
-	}
 	torrcPath := filepath.Join(dataDir, "torrc")
 	if _, err := os.Stat(torrcPath); err != nil && os.IsNotExist(err) {
 		err := ioutil.WriteFile(torrcPath, []byte(`
@@ -87,14 +78,12 @@ Log notice stdout
 			return nil, errors.Wrap(err, "failed to create torrc")
 		}
 	}
-
-	var forwarders []*forwarder
 	args := []string{
 		"-f", torrcPath,
 		"--Log", "notice stderr",
 		"--SocksPort", cfg.Node.Agent.SocksAddr,
 		"--ControlPort", cfg.Node.Agent.ControlAddr,
-		"--HashedControlPassword", controlHash,
+		"--CookieAuthentication", "1",
 		"--DataDirectory", dataDir,
 	}
 	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, args...)
@@ -105,6 +94,7 @@ Log notice stdout
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	var forwarders []*forwarder
 	for _, remote := range cfg.Node.Remotes {
 		for _, import_ := range remote.Imports {
 			forwarders = append(forwarders, &forwarder{
@@ -120,7 +110,6 @@ Log notice stdout
 		dataDir:          dataDir,
 		hiddenServiceDir: hiddenServiceDir,
 		controlAddr:      cfg.Node.Agent.ControlAddr,
-		controlPass:      controlPass,
 		cmd:              cmd,
 		forwarders:       forwarders,
 	}, nil
@@ -131,11 +120,6 @@ func newTorBrowserAgent(cfg *config.Config) (*Agent, error) {
 	if err := os.MkdirAll(hiddenServiceDir, 0700); err != nil {
 		return nil, errors.Wrapf(err, "failed to create directory %q", hiddenServiceDir)
 	}
-	controlCookie, err := ioutil.ReadFile(cfg.Node.Agent.ControlCookie)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read control auth cookie")
-	}
-
 	var forwarders []*forwarder
 	dialer, err := proxy.SOCKS5("tcp", cfg.Node.Agent.SocksAddr, nil, proxy.Direct)
 	if err != nil {
@@ -156,35 +140,8 @@ func newTorBrowserAgent(cfg *config.Config) (*Agent, error) {
 		dataDir:          cfg.Node.Agent.TorDataDir,
 		hiddenServiceDir: hiddenServiceDir,
 		controlAddr:      cfg.Node.Agent.ControlAddr,
-		controlCookie:    controlCookie,
 		forwarders:       forwarders,
 	}, nil
-}
-
-func generateControlPass(cfg *config.Config) (string, string, error) {
-	var binpass [32]byte
-	_, err := rand.Reader.Read(binpass[:])
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to generate password")
-	}
-	password := base64.URLEncoding.EncodeToString(binpass[:])
-	args := []string{
-		"--DataDirectory", filepath.Join(cfg.Dir, "tor", "data"),
-		"--GeoIPFile", filepath.Join(cfg.Dir, "tor", "data", "geoip"),
-		"--GeoIPv6File", filepath.Join(cfg.Dir, "tor", "data", "geoip6"),
-		"--hash-password", password,
-	}
-	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		log.Printf("cmd: %#v", cmd)
-		log.Printf("stdout: %s", out.String())
-		return "", "", errors.Wrap(err, "failed to obtain hashed control password")
-	}
-	return password, strings.TrimSpace(out.String()), nil
 }
 
 func (a *Agent) Start() error {
@@ -200,21 +157,20 @@ func (a *Agent) Start() error {
 	}
 	// Try to connect for 45 seconds cumulative
 	for s := 1; s < 10; s++ {
+		controlCookie, err := ioutil.ReadFile(
+			filepath.Join(a.dataDir, "control_auth_cookie"))
+		if err != nil {
+			time.Sleep(time.Duration(s) * time.Second)
+			continue
+		}
 		conn, err = control.Dial(a.controlAddr)
 		if err != nil {
 			time.Sleep(time.Duration(s) * time.Second)
 			continue
 		}
-		if a.controlCookie != nil {
-			err = conn.AuthCookie(a.controlCookie)
-			if err != nil {
-				return errors.Wrap(err, "control auth failed")
-			}
-		} else {
-			err = conn.Auth(a.controlPass)
-			if err != nil {
-				return errors.Wrap(err, "control auth failed")
-			}
+		err = conn.AuthCookie(controlCookie)
+		if err != nil {
+			return errors.Wrap(err, "control auth failed")
 		}
 		a.conn = conn
 		err = a.startForwarding()
@@ -367,7 +323,6 @@ func (a *Agent) ClientAccess(clientName string) (string, string, error) {
 	lines := bufio.NewScanner(f)
 	for lines.Scan() {
 		line := lines.Text()
-		log.Println(line)
 		if strings.HasSuffix(line, fmt.Sprintf("# client: %s", clientName)) {
 			fields := strings.Split(line, " ")
 			if len(fields) < 5 {
