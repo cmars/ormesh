@@ -71,7 +71,10 @@ func initConfig() {
 func withConfig(f func(*config.Config) error) {
 	cfg, err := config.ReadFile(cfgFile)
 	if os.IsNotExist(errors.Cause(err)) {
-		cfg = config.NewFile(cfgFile)
+		cfg, err = config.NewFile(cfgFile)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	} else if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -84,7 +87,10 @@ func withConfig(f func(*config.Config) error) {
 func withConfigForUpdate(f func(*config.Config) error) {
 	cfg, err := config.ReadFile(cfgFile)
 	if os.IsNotExist(errors.Cause(err)) {
-		cfg = config.NewFile(cfgFile)
+		cfg, err = config.NewFile(cfgFile)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	} else if err != nil {
 		log.Fatalf("%v", err)
 	}

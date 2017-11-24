@@ -96,10 +96,14 @@ func ReadFile(fpath string) (*Config, error) {
 	return &cfg, nil
 }
 
-func NewFile(fpath string) *Config {
+func NewFile(fpath string) (*Config, error) {
 	cfg := Config{}
 	cfg.init(fpath, &toml.MetaData{})
-	return &cfg
+	err := WriteFile(&cfg, fpath)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return &cfg, nil
 }
 
 func (c *Config) init(fpath string, md *toml.MetaData) {

@@ -88,7 +88,7 @@ Log notice stdout
 	}
 	cmd := exec.Command(cfg.Node.Agent.TorBinaryPath, args...)
 	cmd.Dir = dataDir
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	dialer, err := proxy.SOCKS5("tcp", cfg.Node.Agent.SocksAddr, nil, proxy.Direct)
 	if err != nil {
