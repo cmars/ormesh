@@ -1,5 +1,5 @@
 name: ormesh
-version: '0.1.7'
+version: '0.1.8'
 summary: Onion-routed mesh
 description: |
   ormesh helps you build a private mesh of hosts connected through Tor. Access
