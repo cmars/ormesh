@@ -15,7 +15,6 @@ git reset
 git add snap/snapcraft.yaml
 git commit -m "Release snapcraft ${VERSION}" || true
 
-git tag -s -a "v${VERSION}" -m "Release ${VERSION}"
-git push origin "v${VERSION}"
+git tag -s -a "v${VERSION}" -m "Release ${VERSION}" && git push origin "v${VERSION}" || true
 
 goreleaser
