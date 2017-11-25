@@ -8,5 +8,8 @@ RUN gpg --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD
 RUN gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
 RUN apt-get update
 RUN apt-get install -y tor deb.torproject.org-keyring
+RUN mkdir -p /var/lib/ormesh
+ENV HOME /var/lib/ormesh
+VOLUME /var/lib/ormesh
 COPY ormesh /
 ENTRYPOINT ["/ormesh", "agent", "run"]
