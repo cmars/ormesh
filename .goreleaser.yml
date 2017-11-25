@@ -6,3 +6,9 @@ builds:
       - windows
     goarch:
       - amd64
+brew:
+  github:
+    owner: cmars
+    name: homebrew-ormesh
+dockers:
+  - image: cmars/ormesh
