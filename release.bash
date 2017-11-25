@@ -10,7 +10,7 @@ fi
 
 set -u
 
-sed -i 's/^version: .*/version: \''${VERSION}'\'' snap/snapcraft.yaml
+sed -i "s/^version: .*/version: '${VERSION}'/" snap/snapcraft.yaml
 git reset
 git add snap/snapcraft.yaml
 git commit -m "Release snapcraft ${VERSION}"
