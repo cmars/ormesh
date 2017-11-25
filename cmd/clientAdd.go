@@ -41,45 +41,52 @@ should be securely transmitted to the client.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
-			clientName := args[0]
-			if !IsValidClientName(clientName) {
-				return errors.Errorf("invalid client name %q", clientName)
-			}
-			index := -1
-			for i := range cfg.Node.Service.Clients {
-				if cfg.Node.Service.Clients[i].Name == clientName {
-					index = i
-					break
-				}
-			}
-			if index < 0 {
-				index = len(cfg.Node.Service.Clients)
-				cfg.Node.Service.Clients = append(cfg.Node.Service.Clients, config.Client{
-					Name: clientName,
-				})
-			}
-			a, err := agent.New(cfg)
+			clientAuth, err := addClient(cfg, args[0])
 			if err != nil {
-				return errors.Wrap(err, "failed to initialize agent")
+				return errors.WithStack(err)
 			}
-			err = a.Start()
-			if err != nil {
-				return errors.Wrap(err, "failed to start agent")
-			}
-			defer a.Stop()
-			err = a.UpdateServices(&cfg.Node.Service)
-			if err != nil {
-				return errors.Wrap(err, "failed to update tor hidden services")
-			}
-			address, clientAuth, err := a.ClientAccess(clientName)
-			if err != nil {
-				return errors.Wrap(err, "failed to read tor client auth")
-			}
-			cfg.Node.Service.Clients[index].Address = address
-			fmt.Println(base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s,%s", address, clientAuth))))
+			fmt.Println(clientAuth)
 			return nil
 		})
 	},
+}
+
+func addClient(cfg *config.Config, clientName string) (string, error) {
+	if !IsValidClientName(clientName) {
+		return "", errors.Errorf("invalid client name %q", clientName)
+	}
+	index := -1
+	for i := range cfg.Node.Service.Clients {
+		if cfg.Node.Service.Clients[i].Name == clientName {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		index = len(cfg.Node.Service.Clients)
+		cfg.Node.Service.Clients = append(cfg.Node.Service.Clients, config.Client{
+			Name: clientName,
+		})
+	}
+	a, err := agent.New(cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to initialize agent")
+	}
+	err = a.Start()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to start agent")
+	}
+	defer a.Stop()
+	err = a.UpdateServices(&cfg.Node.Service)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to update tor hidden services")
+	}
+	address, clientAuth, err := a.ClientAccess(clientName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read tor client auth")
+	}
+	cfg.Node.Service.Clients[index].Address = address
+	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s,%s", address, clientAuth))), nil
 }
 
 func init() {

@@ -18,6 +18,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
@@ -37,6 +38,18 @@ service policies. Configuration is automatically refreshed and applied when the
 ormesh configuration file is modified or a SIGHUP received. This command will
 not exit until an interrupt signal is received or an error is encountered.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if exportsValue := os.Getenv("ORMESH_EXPORTS"); exportsValue != "" {
+			exports := strings.Split(exportsValue, " ")
+			for i := range exports {
+				exportAddCmd.Run(exportAddCmd, []string{exports[i]})
+			}
+		}
+		if clientsValue := os.Getenv("ORMESH_CLIENTS"); clientsValue != "" {
+			clients := strings.Split(clientsValue, " ")
+			for i := range clients {
+				clientAddCmd.Run(clientAddCmd, []string{clients[i]})
+			}
+		}
 		withConfig(func(cfg *config.Config) error {
 			a, err := agent.New(cfg)
 			if err != nil {
