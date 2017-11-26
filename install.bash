@@ -2,6 +2,8 @@
 
 set -eu
 
+RELEASE_VERSION=0.1.6
+
 echo "deb http://deb.torproject.org/torproject.org xenial main" | sudo tee /etc/apt/sources.list.d/tor.list
 echo "deb-src http://deb.torproject.org/torproject.org xenial main" | sudo tee -a /etc/apt/sources.list.d/tor.list
 sudo apt-key adv --keyserver keys.gnupg.net --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
@@ -13,7 +15,7 @@ tmpdir=$(mktemp -d)
 trap "rm -rf ${tmpdir}" EXIT
 
 cd ${tmpdir}
-wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v0.1.6/ormesh_0.1.6_linux_amd64.tar.gz
+wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v${RELEASE_VERSION}/ormesh_${RELEASE_VERSION}_linux_amd64.tar.gz
 tar xf ormesh.tar.gz
 sudo cp ormesh /usr/bin/ormesh
 /usr/bin/ormesh agent privbind || echo "warning: setting privileged port bind capability failed"
