@@ -17,6 +17,7 @@ trap "rm -rf ${tmpdir}" EXIT
 cd ${tmpdir}
 wget -O ormesh.tar.gz https://github.com/cmars/ormesh/releases/download/v${RELEASE_VERSION}/ormesh_${RELEASE_VERSION}_linux_amd64.tar.gz
 tar xf ormesh.tar.gz
+sudo systemctl stop ormesh || true
 sudo cp ormesh /usr/bin/ormesh
 /usr/bin/ormesh agent privbind || echo "warning: setting privileged port bind capability failed"
 
@@ -27,3 +28,6 @@ if [ "$EUID" -eq 0 ]; then
 else
 	/usr/bin/ormesh agent systemd | sudo tee /etc/systemd/system/ormesh.service
 fi
+
+sudo systemctl enable ormesh
+sudo systemctl start ormesh
