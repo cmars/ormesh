@@ -2,7 +2,7 @@
 
 set -eu
 
-RELEASE_VERSION=0.1.6
+RELEASE_VERSION=0.2.0
 
 echo "deb http://deb.torproject.org/torproject.org xenial main" | sudo tee /etc/apt/sources.list.d/tor.list
 echo "deb-src http://deb.torproject.org/torproject.org xenial main" | sudo tee -a /etc/apt/sources.list.d/tor.list
