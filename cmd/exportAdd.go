@@ -15,6 +15,9 @@
 package cmd
 
 import (
+	"net"
+	"strconv"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -27,22 +30,38 @@ var exportAddCmd = &cobra.Command{
 	Short: "Add a service export",
 	Long: `Add a service to export as a hidden service. Bind address defaults to 127.0.0.1
 if not specified.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
-			exportAddr, err := NormalizeAddrPort(args[0])
+			localAddr, err := NormalizeAddrPort(args[0])
 			if err != nil {
-				return errors.Errorf("invalid export address %q", args[0])
+				return errors.Errorf("invalid local address %q", args[0])
+			}
+			export := config.Export{
+				LocalAddr: localAddr,
+			}
+			var portStr string
+			if len(args) > 1 {
+				portStr = args[1]
+			} else {
+				_, portStr, err = net.SplitHostPort(localAddr)
+				if err != nil {
+					return errors.Errorf("invalid local address %q", localAddr)
+				}
+			}
+			export.Port, err = strconv.Atoi(portStr)
+			if err != nil {
+				return errors.Errorf("invalid port %q", args[1])
 			}
 			index := -1
 			for i := range cfg.Node.Service.Exports {
-				if cfg.Node.Service.Exports[i] == exportAddr {
+				if cfg.Node.Service.Exports[i] == export {
 					index = i
 					break
 				}
 			}
 			if index < 0 {
-				cfg.Node.Service.Exports = append(cfg.Node.Service.Exports, exportAddr)
+				cfg.Node.Service.Exports = append(cfg.Node.Service.Exports, export)
 			}
 			return nil
 		})

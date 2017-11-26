@@ -32,6 +32,18 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/mdp/qrterminal"
+  packages = ["."]
+  revision = "39c97d9923c8839fed476cd8647718a92af5fa2f"
+  version = "v0.1.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mdp/rsc"
+  packages = ["gf256","qr","qr/coding"]
+  revision = "90f07065088deccf50b28eb37c93dad3078c0f3c"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
@@ -82,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5a742cdd8c7f06ec8727bfe3e9b16bb7c55aaf457d388c2abe53bad62c8149b5"
+  inputs-digest = "ae3bd46c66f984e375ecf03ccca3892afbd1c38d0f7c1758f22128141c8fedb3"
   solver-name = "gps-cdcl"
   solver-version = 1

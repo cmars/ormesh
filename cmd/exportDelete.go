@@ -30,19 +30,19 @@ entry to be deleted, defaulting to 127.0.0.1 if not specified.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
-			exportAddr, err := NormalizeAddrPort(args[0])
+			localAddr, err := NormalizeAddrPort(args[0])
 			if err != nil {
-				return errors.Errorf("invalid export address %q", args[0])
+				return errors.Errorf("invalid local address %q", args[0])
 			}
 			index := -1
 			for i := range cfg.Node.Service.Exports {
-				if cfg.Node.Service.Exports[i] == exportAddr {
+				if cfg.Node.Service.Exports[i].LocalAddr == localAddr {
 					index = i
 					break
 				}
 			}
 			if index == -1 {
-				return errors.Errorf("no such export: %q", exportAddr)
+				return errors.Errorf("no such export: %q", localAddr)
 			}
 			cfg.Node.Service.Exports = append(
 				cfg.Node.Service.Exports[:index],

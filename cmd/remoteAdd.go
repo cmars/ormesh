@@ -23,20 +23,19 @@ import (
 
 // remoteAddCmd represents the remoteAdd command
 var remoteAddCmd = &cobra.Command{
-	Use:   "add <remote name> <client token>",
+	Use:   "add <remote name> <onion address> <client token>",
 	Short: "Add a service remote",
-	Long: `Add a service remote. The client token is the value that was displayed on the
-remote with the command 'ormesh client add'.`,
-	Args: cobra.ExactArgs(2),
+	Long: `Add a service remote. The onion address and client token are the values that
+were displayed on the remote with the command 'ormesh client add'.`,
+	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
-			remoteName, token := args[0], args[1]
+			remoteName, remoteAddr, clientAuth := args[0], args[1], args[2]
 			if !IsValidRemoteName(remoteName) {
 				return errors.Errorf("invalid remote name %q", remoteName)
 			}
-			clientAddr, clientAuth, err := ParseClientToken(token)
-			if err != nil {
-				return errors.Errorf("invalid client token: %v", err)
+			if !strings.HasSuffix(remoteAddr, ".onion") {
+				return errors.Errorf("invalid remote addr %q", remoteAddr)
 			}
 			for i := range cfg.Node.Remotes {
 				if cfg.Node.Remotes[i].Name == remoteName {
@@ -45,7 +44,7 @@ remote with the command 'ormesh client add'.`,
 			}
 			remote := config.Remote{
 				Name:    remoteName,
-				Address: clientAddr,
+				Address: remoteAddr,
 				Auth:    clientAuth,
 			}
 			cfg.Node.Remotes = append(cfg.Node.Remotes, remote)

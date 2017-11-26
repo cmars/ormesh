@@ -39,13 +39,14 @@ ormesh configuration file is modified or a SIGHUP received. This command will
 not exit until an interrupt signal is received or an error is encountered.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if exportsValue := os.Getenv("ORMESH_EXPORTS"); exportsValue != "" {
-			exports := strings.Split(exportsValue, " ")
+			exports := strings.Split(exportsValue, ";")
 			for i := range exports {
-				exportAddCmd.Run(exportAddCmd, []string{exports[i]})
+				exportArgs := strings.Split(exports[i], " ")
+				exportAddCmd.Run(exportAddCmd, exportArgs)
 			}
 		}
 		if clientsValue := os.Getenv("ORMESH_CLIENTS"); clientsValue != "" {
-			clients := strings.Split(clientsValue, " ")
+			clients := strings.Split(clientsValue, ";")
 			for i := range clients {
 				clientAddCmd.Run(clientAddCmd, []string{clients[i]})
 			}

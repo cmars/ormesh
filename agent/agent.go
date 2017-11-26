@@ -262,12 +262,8 @@ func (a *Agent) UpdateServices(svc *config.Service) error {
 	if len(svc.Exports) > 0 {
 		setArgs = append(setArgs, fmt.Sprintf(`HiddenServiceDir="%s"`, a.hiddenServiceDir))
 		for _, export := range svc.Exports {
-			_, port, err := net.SplitHostPort(export)
-			if err != nil {
-				return errors.Wrapf(err, "invalid export %q", export)
-			}
 			setArgs = append(setArgs,
-				fmt.Sprintf(`HiddenServicePort="%s %s"`, port, export))
+				fmt.Sprintf(`HiddenServicePort="%d %s"`, export.Port, export.LocalAddr))
 		}
 	} else {
 		resetArgs = append(resetArgs, "HiddenServicePort")

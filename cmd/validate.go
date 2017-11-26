@@ -48,19 +48,3 @@ func NormalizeAddrPort(addr string) (string, error) {
 	}
 	return fmt.Sprintf("127.0.0.1:%d", port), nil
 }
-
-func ParseClientToken(token string) (string, string, error) {
-	clientInfo, err := base64.URLEncoding.DecodeString(token)
-	if err != nil {
-		return "", "", errors.WithMessage(err, "invalid token")
-	}
-	fields := strings.SplitN(string(clientInfo), ",", 2)
-	if len(fields) < 2 {
-		return "", "", errors.New("invalid token")
-	}
-	clientAddr, clientAuth := fields[0], fields[1]
-	if len(clientAddr) == 0 || len(clientAuth) == 0 {
-		return "", "", errors.New("invalid token")
-	}
-	return clientAddr, clientAuth, nil
-}

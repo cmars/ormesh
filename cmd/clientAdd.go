@@ -15,15 +15,19 @@
 package cmd
 
 import (
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"os"
 
+	"github.com/mdp/qrterminal"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cmars/ormesh/agent"
 	"github.com/cmars/ormesh/config"
 )
+
+var displayQR bool
 
 // clientAddCmd represents the clientAdd command
 var clientAddCmd = &cobra.Command{
@@ -41,19 +45,34 @@ should be securely transmitted to the client.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		withConfigForUpdate(func(cfg *config.Config) error {
-			clientAuth, err := addClient(cfg, args[0])
+			client, err := addClient(cfg, args[0])
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			fmt.Println(clientAuth)
+			if displayQR {
+				qrDoc := struct {
+					AuthCookieValue string `json:"auth_cookie_value"`
+					Domain          string `json:"domain"`
+				}{
+					AuthCookieValue: client.Auth,
+					Domain:          client.Address,
+				}
+				qrText, err := json.Marshal(&qrDoc)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				qrterminal.Generate(string(qrText), qrterminal.H, os.Stdout)
+			} else {
+				fmt.Printf("%s %s\n", client.Address, client.Auth)
+			}
 			return nil
 		})
 	},
 }
 
-func addClient(cfg *config.Config, clientName string) (string, error) {
+func addClient(cfg *config.Config, clientName string) (*config.Client, error) {
 	if !IsValidClientName(clientName) {
-		return "", errors.Errorf("invalid client name %q", clientName)
+		return nil, errors.Errorf("invalid client name %q", clientName)
 	}
 	index := -1
 	for i := range cfg.Node.Service.Clients {
@@ -70,25 +89,27 @@ func addClient(cfg *config.Config, clientName string) (string, error) {
 	}
 	a, err := agent.New(cfg)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to initialize agent")
+		return nil, errors.Wrap(err, "failed to initialize agent")
 	}
 	err = a.Start()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to start agent")
+		return nil, errors.Wrap(err, "failed to start agent")
 	}
 	defer a.Stop()
 	err = a.UpdateServices(&cfg.Node.Service)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to update tor hidden services")
+		return nil, errors.Wrap(err, "failed to update tor hidden services")
 	}
 	address, clientAuth, err := a.ClientAccess(clientName)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to read tor client auth")
+		return nil, errors.Wrap(err, "failed to read tor client auth")
 	}
 	cfg.Node.Service.Clients[index].Address = address
-	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s,%s", address, clientAuth))), nil
+	cfg.Node.Service.Clients[index].Auth = clientAuth
+	return &cfg.Node.Service.Clients[index], nil
 }
 
 func init() {
+	clientAddCmd.Flags().BoolVarP(&displayQR, "qr", "", false, "Display Orbot client cookie QR code")
 	clientCmd.AddCommand(clientAddCmd)
 }

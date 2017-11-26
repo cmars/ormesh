@@ -35,13 +35,19 @@ type Node struct {
 }
 
 type Service struct {
-	Exports []string
+	Exports []Export
 	Clients []Client
+}
+
+type Export struct {
+	LocalAddr string
+	Port      int
 }
 
 type Client struct {
 	Name    string
 	Address string
+	Auth    string
 }
 
 type Remote struct {
