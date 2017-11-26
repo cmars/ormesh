@@ -39,7 +39,6 @@ privileged ports (<1024).`,
 		}
 		if os.Getuid() == 0 {
 			cmd := exec.Command("setcap", "cap_net_bind_service=+ep", binaryPath)
-			log.Printf("%#v", cmd)
 			err := cmd.Run()
 			if err != nil {
 				log.Fatalf("setcap failed: %v", err)
@@ -47,7 +46,6 @@ privileged ports (<1024).`,
 		} else {
 			cmd := exec.Command("/bin/sh", "-c",
 				fmt.Sprintf("sudo setcap 'cap_net_bind_service=+ep' %s", binaryPath))
-			log.Printf("%#v", cmd)
 			err := cmd.Run()
 			if err != nil {
 				log.Fatalf("setcap failed: %v", err)
