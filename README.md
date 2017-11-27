@@ -20,8 +20,8 @@ Tor is well-suited to traversing all kinds of networks between services and the
 clients that would consume them. Tor provides resilient network infrastructure
 with no single point of failure.
 
-Tor hidden services can be deployed in a private, authenticated mode, which
-keeps services from being generally accessible.
+Tor hidden services can be deployed in a [private, authenticated mode](https://www.torproject.org/docs/tor-manual.html.en#HiddenServiceAuthorizeClient),
+which keeps services from being generally accessible.
 
 ormesh helps manage the configuration and auth token exchange necessary to
 deploy a private backplane to connect infrastructure.
@@ -41,9 +41,9 @@ ormesh is not a VPN in the conventional sense.
 
 ormesh is not intended for operating unauthenticated anonymous hidden services.
 Anonymity is an interesting side-effect of building on Tor, but it is not a
-priority for ormesh, nor it is guaranteed. Users are responsible for evaluating
-ormesh (and its Tor configuration) and deciding whether it meets security
-requirements and threat models.
+priority for ormesh, nor it is guaranteed for all use cases. Users are
+responsible for evaluating ormesh (and its Tor configuration) and deciding
+whether it meets security requirements and threat models.
 
 Low-latency, high bandwidth applications may not perform well over ormesh's Tor
 configuration. Improvements here are possible (by trading anonymity for
@@ -55,7 +55,7 @@ Tor only routes TCP traffic.
 
 ## macOS
 
-[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). Then:
+[Install Homebrew](https://brew.sh/). [Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). Then:
 
     brew tap cmars/ormesh
     brew install ormesh
@@ -64,25 +64,28 @@ ormesh operates the Tor executable that comes with Tor Browser.
 
 ## Windows
 
-[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en).
+[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). Then,
+download an ormesh binary tarball [release](releases), extract and install
+`ormesh.exe` into your `%PATH%`.
 
-Like macOS, relies on Tor Browser. The Windows default config expects to find
-Tor Browser installed on the current user's Desktop. Not really tested, good
-luck.
+Like macOS, ormesh on Windows relies on Tor Browser. The Windows default config
+expects to find Tor Browser installed to the current user's Desktop.
+
+Fair warning, I've not really tested much on Windows..
 
 ## Debian & Ubuntu Linux
 
 ### curl | bash
 
 Read the script before running if you like. It will install ormesh to /usr/bin,
-install Tor from official torproject archives, setcap ormesh to allow
-privileged port binding, and install ormesh as a systemd service.
+install Tor standalone from official torproject archives, `setcap` ormesh to
+allow privileged port binding, and install ormesh as a systemd service.
 
     curl https://git.io/vFN94 -sSfL | bash
     
 ### Snap packaging
 
-    snap install --edge ormesh
+    sudo snap install --edge ormesh
 
 The snap package does not work well for some use cases so it's considered
 experimental. I've had trouble installing into containers and binding to
@@ -116,11 +119,6 @@ Export services running locally as Tor hidden services.
 ```
 $ ormesh export add 22
 $ ormesh export add 80
-$ ormesh status
-service:
-  export:
-    - 127.0.0.1:22
-    - 127.0.0.1:80
 ```
 
 Export services on other hosts.
@@ -156,8 +154,6 @@ interrupted or terminated.
 On macOS and Windows, the agent will connect to the Tor process launched with
 the Tor Browser and exit after applying changes to the Tor configuration --
 unless remote services are imported locally.
-
-# Consuming services
 
 ## Add a remote service, with client authentication
 
@@ -256,3 +252,21 @@ Display the client's onion address & auth cookie by "adding" them again
 Other configuration commands can be applied with `docker exec` while the
 container is running, changes are applied immediately.
 
+# Orbot integration
+
+    ormesh client add --qr my-phone
+
+Displays a QR code in the terminal that Orbot can read, to import the client
+auth token. For best results, make sure your terminal is at least 80x40 and
+supports ANSI codes.
+
+- Open Orbot.
+- From the menu, choose: "Hidden Services" -> "Client cookies"
+- From the menu, choose: "Read from QR" and then scan the QR code displayed in the
+  terminal.
+- Restart Orbot.
+
+This authorizes Orbot to be able to connect to the hidden service.
+
+The onion address can then be accessed from apps that connect through Tor.
+Orfox or "Apps VPN mode" for other applications.
