@@ -1,4 +1,6 @@
-# ormesh - onion-routed mesh
+# ormesh - the onion-routed mesh
+
+![mesh bag of onions](onion-mesh.jpg)
 
 ormesh helps you connect services through [Tor](https://www.torproject.org/).
 
@@ -12,11 +14,13 @@ mix.
 
 Access services running almost anywhere, from just about anywhere else.
 
-Tor is well-suited to traversing all kinds of networks between services and the
-clients that would consume them. Tor provides a resilient infrastructure with
-no single point of failure.
+## How?
 
-Tor's hidden services can be deployed in a private, authenticated mode, which
+Tor is well-suited to traversing all kinds of networks between services and the
+clients that would consume them. Tor provides resilient network infrastructure
+with no single point of failure.
+
+Tor hidden services can be deployed in a private, authenticated mode, which
 keeps services from being generally accessible.
 
 ormesh helps manage the configuration and auth token exchange necessary to
@@ -37,57 +41,77 @@ ormesh is not a VPN in the conventional sense.
 
 ormesh is not intended for operating unauthenticated anonymous hidden services.
 Anonymity is an interesting side-effect of building on Tor, but it is not a
-primary goal for ormesh, nor it is guaranteed. Users are responsible for
-evaluating ormesh (and its Tor configuration) and deciding whether it meets
-security requirements and threat models.
+priority for ormesh, nor it is guaranteed. Users are responsible for evaluating
+ormesh (and its Tor configuration) and deciding whether it meets security
+requirements and threat models.
 
 Low-latency, high bandwidth applications may not perform well over ormesh's Tor
 configuration. Improvements here are possible (by trading anonymity for
 improved latency and network throughput) but not yet implemented.
 
-Also keep in mind that Tor only routes TCP traffic.
+Tor only routes TCP traffic.
 
-# Installing
+# Install
+
+## macOS
+
+[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en). Then:
+
+    brew tap cmars/ormesh
+    brew install ormesh
+
+ormesh operates the Tor executable that comes with Tor Browser.
+
+## Windows
+
+[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en).
+
+Like macOS, relies on Tor Browser. The Windows default config expects to find
+Tor Browser installed on the current user's Desktop. Not really tested, good
+luck.
+
+## Debian & Ubuntu Linux
+
+### curl | bash
+
+Read the script before running if you like. It will install ormesh to /usr/bin,
+install Tor from official torproject archives, setcap ormesh to allow
+privileged port binding, and install ormesh as a systemd service.
+
+    curl https://git.io/vFN94 -sSfL | bash
+    
+### Snap packaging
+
+    snap install --edge ormesh
+
+The snap package does not work well for some use cases so it's considered
+experimental. I've had trouble installing into containers and binding to
+privileged ports.
+
+## Docker
+
+    docker run --name ormesh -d cmars/ormesh:0.2.0
+
+Make it persistent and automatically start up:
+
+    docker run --name ormesh -d \
+        -v /srv/ormesh-config:/var/lib/ormesh cmars/ormesh:0.2.0
+
+## Other options
 
 Download an ormesh binary tarball [release](releases) or build from source:
 
 [Install Go](https://golang.org/doc/install).
 
-Add $GOPATH/bin to your $PATH.
-
-Download and build ormesh.
+Download and build ormesh:
 
     go get -u github.com/cmars/ormesh
 
-## macOS & Windows
-
-[Install Tor Browser](https://www.torproject.org/download/download-easy.html.en).
-
-ormesh will operate the instance of Tor bundled with the Tor Browser on these
-platforms. Windows support is experimental.
-
-## Linux
-
-For the lazy on Ubuntu 16.04 LTS amd64:
-
-    curl https://git.io/vFN94 -sSfL | bash
-
-This will:
-
-- [install Tor](https://www.torproject.org/download/download-unix.html.en) from official
-  torproject.org packages
-- download and install `/usr/bin/ormesh` from [releases](releases)
-- allow ormesh to bind privlieged ports <1024
-- install an ormesh systemd service
-
-Tor doesn't like running as root, so don't install as root.
-
-# Configuring
+# Configuration
 
 ## Exporting local services
 
-A machine, VM or container running a web application might export access to
-HTTP and SSH running locally.
+Export services running locally as Tor hidden services.
 
 ```
 $ ormesh export add 22
@@ -99,7 +123,7 @@ service:
     - 127.0.0.1:80
 ```
 
-You can also export services on other hosts.
+Export services on other hosts.
 
 ```
 $ ormesh export add 192.168.1.19:8000
@@ -107,49 +131,46 @@ $ ormesh export add 192.168.1.19:8000
 
 ## Adding clients
 
-Generate a token string that a client can import to access exported services.
-This string should be securely sent to the user of `my-MacBook` who is granted
-access.
+Each client gets an auth token string that grants access to the exported
+services. Without the auth token, the hidden service is not accessible.
+
+This string should be securely sent to the user of `my-MacBook`:
 
 ```
 $ ormesh client add my-MacBook
-Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
+fl3scqcsbitwf7zb.onion x29A3kzv4hrYvBhTkPMV2h
 ```
 
-Status shows the ports exported and the clients authorized to access them.
+## Launch the agent
+
+The agent will operate Tor, implementing the configured export and client
+access policies.
 
 ```
-$ ormesh status
-service:
-  export:
-    - 127.0.0.1:22
-    - 127.0.0.1:80
-  clients:
-    - name: my-MacBook
-      address: q6jo2z3bw5exkece.onion
+$ ormesh agent run
 ```
+
+On Linux, the agent will launch Tor and run it as a subprocess until
+interrupted or terminated.
+
+On macOS and Windows, the agent will connect to the Tor process launched with
+the Tor Browser and exit after applying changes to the Tor configuration --
+unless remote services are imported locally.
 
 # Consuming services
 
 ## Add a remote service, with client authentication
 
-On the machine `my-MacBook`, add a remote using the authentication string displayed by
-`client add` above.
+On the machine `my-MacBook`, start Tor Browser, and then add a remote using the
+onion address and auth token displayed by `client add` above.
 
 ```
-$ ormesh remote add website Y5Cfw7A5RhP8Rd7xGYfD8N4oyEBpBWNR+6Qkgrbepk0=
-```
-
-```
-$ ormesh status
-remotes:
-  - name: website
-    address: q6jo2z3bw5exkece.onion
+$ ormesh remote add my-server fl3scqcsbitwf7zb.onion x29A3kzv4hrYvBhTkPMV2h
 ```
 
 ```
-$ ormesh remote show website
-q6jo2z3bw5exkece.onion
+$ ormesh remote show my-server
+fl3scqcsbitwf7zb.onion
 ```
 
 ## Display an SSH config entry
@@ -157,27 +178,23 @@ q6jo2z3bw5exkece.onion
 Display an ssh-config(5) stanza for the remote.
 
 ```
-$ ormesh remote ssh-config website
+$ ormesh remote ssh-config my-server
 Host website
   ProxyCommand nc -X 5 -x localhost:9250 %h %p
-  Hostname q6jo2z3bw5exkece.onion
+  Hostname fl3scqcsbitwf7zb.onion
 ```
 
 ## Importing remote services
 
-Set up local port forwarding to remote services with _imports_.
+Set up local port forwarding to remote services with _imports_. The agent will
+forward connections to local ports to the corresponding remote service until
+the process is interrupted or terminated.
 
 Forward local port 10022 to port 22 on the remote:
 
 ```
 $ ormesh import add website 22 127.0.0.1:10022
-$ ormesh status
-remotes:
-  - name: website
-    address: q6jo2z3bw5exkece.onion
-    imports:
-    - local-addr: 127.0.0.1:10022
-      remote-port: 22
+$ ormesh agent run
 ```
 
 Listen on all addresses to create a public ingress to a remote service. Useful
@@ -190,21 +207,16 @@ services from a cloud instance with a public IP and DNS.
 $ ormesh agent privbind
 $ ormesh import add mailinabox 25 0.0.0.0:25
 $ ormesh import add mailinabox 587 0.0.0.0:587
+$ ormesh agent run
 ```
 
-# Operating
-
-An ormesh agent launches tor and operates it automatically, based on ormesh
-configuration.
-
-## Launching manually
+# Operating the agent
 
 ```
 $ ormesh agent run
 ```
 
-will run the agent as configured above. Configuration changes made while the agent
-is running are applied immediately.
+Configuration changes made while the agent is running are applied immediately.
 
 ## Setting up systemd
 
@@ -224,3 +236,23 @@ User=ubuntu
 [Install]
 WantedBy=default.target
 ```
+
+## Docker
+
+The ormesh image supports configuration by environment variables: 
+
+    docker run --name ormesh -d \
+        -e 'ORMESH_EXPORTS=80' \
+        -e 'ORMESH_CLIENTS=desktop;laptop' cmars/ormesh:0.2.0
+
+will preconfigure ormesh to export 127.0.0.1:80 to clients named "desktop" and
+"laptop".
+
+Display the client's onion address & auth cookie by "adding" them again
+(`client add` is idempotent):
+
+    docker exec ormesh /ormesh client add desktop
+
+Other configuration commands can be applied with `docker exec` while the
+container is running, changes are applied immediately.
+
