@@ -175,7 +175,7 @@ Display an ssh-config(5) stanza for the remote.
 
 ```
 $ ormesh remote ssh-config my-server
-Host website
+Host my-server
   ProxyCommand nc -X 5 -x localhost:9250 %h %p
   Hostname fl3scqcsbitwf7zb.onion
 ```
