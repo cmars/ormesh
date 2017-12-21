@@ -15,10 +15,11 @@
 package cmd
 
 import (
-	"github.com/pkg/errors"
+	"log"
+
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // exportDeleteCmd represents the exportDelete command
@@ -29,26 +30,10 @@ var exportDeleteCmd = &cobra.Command{
 entry to be deleted, defaulting to 127.0.0.1 if not specified.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) error {
-			localAddr, err := NormalizeAddrPort(args[0])
-			if err != nil {
-				return errors.Errorf("invalid local address %q", args[0])
-			}
-			index := -1
-			for i := range cfg.Node.Service.Exports {
-				if cfg.Node.Service.Exports[i].LocalAddr == localAddr {
-					index = i
-					break
-				}
-			}
-			if index == -1 {
-				return errors.Errorf("no such export: %q", localAddr)
-			}
-			cfg.Node.Service.Exports = append(
-				cfg.Node.Service.Exports[:index],
-				cfg.Node.Service.Exports[index+1:]...)
-			return nil
-		})
+		err := runner.Run(&runner.ExportDelete{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

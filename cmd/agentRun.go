@@ -16,17 +16,10 @@ package cmd
 
 import (
 	"log"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 
-	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/agent"
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // agentRunCmd represents the agentRun command
@@ -38,94 +31,10 @@ service policies. Configuration is automatically refreshed and applied when the
 ormesh configuration file is modified or a SIGHUP received. This command will
 not exit until an interrupt signal is received or an error is encountered.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if exportsValue := os.Getenv("ORMESH_EXPORTS"); exportsValue != "" {
-			exports := strings.Split(exportsValue, ";")
-			for i := range exports {
-				exportArgs := strings.Split(exports[i], " ")
-				exportAddCmd.Run(exportAddCmd, exportArgs)
-			}
+		err := runner.Run(&runner.AgentRun{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
 		}
-		if clientsValue := os.Getenv("ORMESH_CLIENTS"); clientsValue != "" {
-			clients := strings.Split(clientsValue, ";")
-			for i := range clients {
-				clientAddCmd.Run(clientAddCmd, []string{clients[i]})
-			}
-		}
-		withConfig(func(cfg *config.Config) error {
-			a, err := agent.New(cfg)
-			if err != nil {
-				return errors.Wrap(err, "failed to initialize agent")
-			}
-			err = a.Start()
-			if err != nil {
-				return errors.Wrap(err, "failed to start agent")
-			}
-			defer a.Stop()
-
-			refresh := func(cfg *config.Config) error {
-				err = a.UpdateServices(&cfg.Node.Service)
-				if err != nil {
-					return errors.Wrap(err, "failed to configure hidden services")
-				}
-				err = a.UpdateRemotes(&cfg.Node)
-				if err != nil {
-					return errors.Wrap(err, "failed to configure remotes")
-				}
-				return nil
-			}
-			refresh(cfg)
-
-			if cfg.Node.Agent.UseTorBrowser {
-				var nImports int
-				for _, remote := range cfg.Node.Remotes {
-					nImports += len(remote.Imports)
-				}
-				if nImports == 0 {
-					log.Println("no imports to forward, exiting")
-					return nil
-				}
-			}
-
-			watcher, err := fsnotify.NewWatcher()
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			defer watcher.Close()
-			err = watcher.Add(cfg.Path)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			exitSignal := make(chan os.Signal, 1)
-			signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
-
-			refreshSignal := make(chan os.Signal, 1)
-			signal.Notify(exitSignal, syscall.SIGHUP)
-
-			for {
-				select {
-				case s := <-exitSignal:
-					return errors.Errorf("exit on signal %v", s)
-				case <-refreshSignal:
-					err = refresh(cfg)
-					if err != nil {
-						return errors.WithStack(err)
-					}
-				case ev := <-watcher.Events:
-					if ev.Op&fsnotify.Write == fsnotify.Write {
-						cfg, err = config.ReadFile(cfg.Path)
-						if err != nil {
-							return errors.WithStack(err)
-						}
-						log.Printf("configuration changed")
-						err = refresh(cfg)
-						if err != nil {
-							return errors.WithStack(err)
-						}
-					}
-				}
-			}
-		})
 	},
 }
 

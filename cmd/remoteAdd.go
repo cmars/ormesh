@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"strings"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // remoteAddCmd represents the remoteAdd command
@@ -31,27 +30,10 @@ var remoteAddCmd = &cobra.Command{
 were displayed on the remote with the command 'ormesh client add'.`,
 	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) error {
-			remoteName, remoteAddr, clientAuth := args[0], args[1], args[2]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote name %q", remoteName)
-			}
-			if !strings.HasSuffix(remoteAddr, ".onion") {
-				return errors.Errorf("invalid remote addr %q", remoteAddr)
-			}
-			for i := range cfg.Node.Remotes {
-				if cfg.Node.Remotes[i].Name == remoteName {
-					return errors.Errorf("remote %q already exists", remoteName)
-				}
-			}
-			remote := config.Remote{
-				Name:    remoteName,
-				Address: remoteAddr,
-				Auth:    clientAuth,
-			}
-			cfg.Node.Remotes = append(cfg.Node.Remotes, remote)
-			return nil
-		})
+		err := runner.Run(&runner.RemoteAdd{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"strconv"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // importDeleteCmd represents the importDelete command
@@ -29,34 +28,10 @@ var importDeleteCmd = &cobra.Command{
 	Short: "Delete a service import",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) error {
-			remoteName, remotePort := args[0], args[1]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote name %q", remoteName)
-			}
-			remotePortNum, err := strconv.Atoi(remotePort)
-			if err != nil {
-				return errors.Errorf("invalid remote port %q", remotePort)
-			}
-			remoteIndex := -1
-			for i := range cfg.Node.Remotes {
-				if cfg.Node.Remotes[i].Name == remoteName {
-					remoteIndex = i
-					break
-				}
-			}
-			if remoteIndex < 0 {
-				return errors.Errorf("no such remote: %q", remoteName)
-			}
-			var imports []config.Import
-			for i := range cfg.Node.Remotes[remoteIndex].Imports {
-				if cfg.Node.Remotes[remoteIndex].Imports[i].RemotePort != remotePortNum {
-					imports = append(imports, cfg.Node.Remotes[remoteIndex].Imports[i])
-				}
-			}
-			cfg.Node.Remotes[remoteIndex].Imports = imports
-			return nil
-		})
+		err := runner.Run(&runner.ImportDelete{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

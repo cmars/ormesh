@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // remoteShowCmd represents the remoteShow command
@@ -29,19 +28,10 @@ var remoteShowCmd = &cobra.Command{
 	Short: "Show a service remote",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			remoteName := args[0]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote %q", remoteName)
-			}
-			for _, remote := range cfg.Node.Remotes {
-				if remote.Name == remoteName {
-					fmt.Printf("%#v\n", remote)
-					return nil
-				}
-			}
-			return errors.Errorf("no such remote %q", remoteName)
-		})
+		err := runner.Run(&runner.RemoteShow{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

@@ -15,11 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // clientListCmd represents the clientList command
@@ -28,12 +28,10 @@ var clientListCmd = &cobra.Command{
 	Short: "List client authorizations",
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			for _, client := range cfg.Node.Service.Clients {
-				fmt.Printf("%#v\n", client)
-			}
-			return nil
-		})
+		err := runner.Run(&runner.ClientList{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

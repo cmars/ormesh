@@ -14,15 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package runner
 
 import (
-	"log"
+	"os"
+	"path/filepath"
 	"text/template"
 
-	"github.com/spf13/cobra"
-
-	"github.com/cmars/ormesh/runner"
+	"github.com/pkg/errors"
 )
 
 var serviceTemplate = template.Must(template.New("systemd").Parse(`
@@ -42,24 +41,24 @@ User=ubuntu
 WantedBy=multi-user.target
 `))
 
-var serviceUser string
-
-// agentSystemdCmd represents the agentSystemd command
-var agentSystemdCmd = &cobra.Command{
-	Use:   "systemd",
-	Short: "Generate a systemd service that operates ormesh",
-	Run: func(cmd *cobra.Command, args []string) {
-		err := runner.Run(&runner.AgentSystemd{
-			Base:        runner.Base{ConfigFile: configFile},
-			ServiceUser: serviceUser,
-		}, args)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	},
+type AgentSystemd struct {
+	Base
+	ServiceUser string
 }
 
-func init() {
-	agentSystemdCmd.Flags().StringVarP(&serviceUser, "user", "u", "", "User to run ormesh as")
-	agentCmd.AddCommand(agentSystemdCmd)
+func (r *AgentSystemd) Run(args []string) error {
+	binaryPath, err := filepath.Abs(os.Args[0])
+	if err != nil {
+		return errors.Wrap(err, "failed to resolve executable binary path %q", os.Args[0])
+	}
+	err = serviceTemplate.Execute(os.Stdout, struct {
+		BinaryPath string
+		Username   string
+	}{
+		BinaryPath: binaryPath,
+		Username:   r.ServiceUser,
+	})
+	if err != nil {
+		return errors.Wrap(err, "systemd template failed")
+	}
 }

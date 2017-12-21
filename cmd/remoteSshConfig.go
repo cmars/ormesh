@@ -15,13 +15,11 @@
 package cmd
 
 import (
-	"fmt"
-	"net"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // remoteSshConfigCmd represents the sshConfig command
@@ -30,26 +28,10 @@ var remoteSshConfigCmd = &cobra.Command{
 	Short: "Print ssh-config(5) stanza for a remote",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			remoteName := args[0]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote %q", remoteName)
-			}
-			_, socksPort, err := net.SplitHostPort(cfg.Node.Agent.SocksAddr)
-			if err != nil {
-				return errors.Errorf("invalid SocksAddr %q", cfg.Node.Agent.SocksAddr)
-			}
-			for _, remote := range cfg.Node.Remotes {
-				if remote.Name == remoteName {
-					fmt.Printf(`Host %s
-  ProxyCommand nc -X 5 -x 127.0.0.1:%s %%h %%p
-  Hostname %s
-`, remoteName, socksPort, remote.Address)
-					return nil
-				}
-			}
-			return errors.Errorf("no such remote %q", remoteName)
-		})
+		err := runner.Run(&runner.RemoteSshConfig{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

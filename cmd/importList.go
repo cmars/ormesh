@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // importListCmd represents the importList command
@@ -29,22 +28,10 @@ var importListCmd = &cobra.Command{
 	Short: "List service imports",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			remoteName := args[0]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote name %q", remoteName)
-			}
-			// TODO: use specified remote
-			for _, remote := range cfg.Node.Remotes {
-				if remote.Name == remoteName {
-					for _, import_ := range remote.Imports {
-						fmt.Printf("%#v\n", import_)
-					}
-					return nil
-				}
-			}
-			return errors.Errorf("no such remote %q", remoteName)
-		})
+		err := runner.Run(&runner.ImportList{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

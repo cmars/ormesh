@@ -16,17 +16,12 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
 
-	"github.com/cmars/ormesh/config"
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
+var configFile string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -44,62 +39,8 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ormesh.yaml)")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile == "" {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			log.Fatalf("failed to locate home directory: %v", err)
-		}
-		ormeshDir := filepath.Join(home, ".ormesh")
-		if err := os.MkdirAll(ormeshDir, 0700); err != nil {
-			log.Fatalf("failed to create %q: %v", ormeshDir, err)
-		}
-		cfgFile = filepath.Join(ormeshDir, "config")
-	}
-}
-
-func withConfig(f func(*config.Config) error) {
-	cfg, err := config.ReadFile(cfgFile)
-	if os.IsNotExist(errors.Cause(err)) {
-		cfg, err = config.NewFile(cfgFile)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	} else if err != nil {
-		log.Fatalf("%v", err)
-	}
-	err = f(cfg)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-}
-
-func withConfigForUpdate(f func(*config.Config) error) {
-	cfg, err := config.ReadFile(cfgFile)
-	if os.IsNotExist(errors.Cause(err)) {
-		cfg, err = config.NewFile(cfgFile)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	} else if err != nil {
-		log.Fatalf("%v", err)
-	}
-	err = f(cfg)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	err = config.WriteFile(cfg, cfgFile)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is $HOME/.ormesh.yaml)")
 }

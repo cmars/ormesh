@@ -12,30 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package runner
 
 import (
-	"log"
+	"fmt"
 
-	"github.com/spf13/cobra"
+	"github.com/pkg/errors"
 
-	"github.com/cmars/ormesh/runner"
+	"github.com/cmars/ormesh/config"
 )
 
-// clientDeleteCmd represents the clientDelete command
-var clientDeleteCmd = &cobra.Command{
-	Use:   "delete <client name>",
-	Short: "Delete a client authorization",
-	Long:  `Delete a client authorization, revoking access permanently.`,
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		err := runner.Run(&runner.ClientDelete{Base: runner.Base{ConfigFile: configFile}}, args)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	},
+type ClientShow struct {
+	Base
 }
 
-func init() {
-	clientCmd.AddCommand(clientDeleteCmd)
+func (r *ClientShow) Run(args []string) error {
+	err := r.WithConfig(func(cfg *config.Config) error {
+		clientName := args[0]
+		if !IsValidClientName(clientName) {
+			return errors.Errorf("invalid client name %q", clientName)
+		}
+		for _, client := range cfg.Node.Service.Clients {
+			if client.Name == clientName {
+				fmt.Printf("%#v\n", client)
+				return nil
+			}
+		}
+		return errors.Errorf("no such client %q", clientName)
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }

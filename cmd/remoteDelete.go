@@ -15,10 +15,11 @@
 package cmd
 
 import (
-	"github.com/pkg/errors"
+	"log"
+
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // remoteDeleteCmd represents the remoteDelete command
@@ -27,23 +28,10 @@ var remoteDeleteCmd = &cobra.Command{
 	Short: "Delete a service remote",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) error {
-			remoteName := args[0]
-			if !IsValidRemoteName(remoteName) {
-				return errors.Errorf("invalid remote %q", remoteName)
-			}
-			index := -1
-			for i := range cfg.Node.Remotes {
-				if cfg.Node.Remotes[i].Name == remoteName {
-					index = i
-				}
-			}
-			if index < 0 {
-				return errors.Errorf("no such remote %q", remoteName)
-			}
-			cfg.Node.Remotes = append(cfg.Node.Remotes[:index], cfg.Node.Remotes[index+1:]...)
-			return nil
-		})
+		err := runner.Run(&runner.RemoteDelete{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

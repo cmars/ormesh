@@ -15,11 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // remoteListCmd represents the remoteList command
@@ -28,12 +28,10 @@ var remoteListCmd = &cobra.Command{
 	Short: "List service remotes",
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			for _, remote := range cfg.Node.Remotes {
-				fmt.Printf("%#v\n", remote)
-			}
-			return nil
-		})
+		err := runner.Run(&runner.RemoteList{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

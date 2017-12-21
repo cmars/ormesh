@@ -17,13 +17,11 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
+
+	"github.com/cmars/ormesh/runner"
 )
 
 // agentPrivbindCmd represents the agentPrivbind command
@@ -33,23 +31,9 @@ var agentPrivbindCmd = &cobra.Command{
 	Long: `Configure the local system to allow importing remote services on
 privileged ports (<1024).`,
 	Run: func(cmd *cobra.Command, args []string) {
-		binaryPath, err := filepath.Abs(os.Args[0])
+		err := runner.Run(&runner.AgentPrivbind{Base: runner.Base{ConfigFile: configFile}}, args)
 		if err != nil {
 			log.Fatalf("%v", err)
-		}
-		if os.Getuid() == 0 {
-			cmd := exec.Command("setcap", "cap_net_bind_service=+ep", binaryPath)
-			err := cmd.Run()
-			if err != nil {
-				log.Fatalf("setcap failed: %v", err)
-			}
-		} else {
-			cmd := exec.Command("/bin/sh", "-c",
-				fmt.Sprintf("sudo setcap 'cap_net_bind_service=+ep' %s", binaryPath))
-			err := cmd.Run()
-			if err != nil {
-				log.Fatalf("setcap failed: %v", err)
-			}
 		}
 	},
 }

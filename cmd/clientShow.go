@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // clientShowCmd represents the clientShow command
@@ -29,19 +28,10 @@ var clientShowCmd = &cobra.Command{
 	Short: "Show an authorized client",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfig(func(cfg *config.Config) error {
-			clientName := args[0]
-			if !IsValidClientName(clientName) {
-				return errors.Errorf("invalid client name %q", clientName)
-			}
-			for _, client := range cfg.Node.Service.Clients {
-				if client.Name == clientName {
-					fmt.Printf("%#v\n", client)
-					return nil
-				}
-			}
-			return errors.Errorf("no such client %q", clientName)
-		})
+		err := runner.Run(&runner.ClientShow{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 

@@ -15,13 +15,11 @@
 package cmd
 
 import (
-	"net"
-	"strconv"
+	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/cmars/ormesh/config"
+	"github.com/cmars/ormesh/runner"
 )
 
 // exportAddCmd represents the exportAdd command
@@ -32,39 +30,10 @@ var exportAddCmd = &cobra.Command{
 if not specified.`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		withConfigForUpdate(func(cfg *config.Config) error {
-			localAddr, err := NormalizeAddrPort(args[0])
-			if err != nil {
-				return errors.Errorf("invalid local address %q", args[0])
-			}
-			export := config.Export{
-				LocalAddr: localAddr,
-			}
-			var portStr string
-			if len(args) > 1 {
-				portStr = args[1]
-			} else {
-				_, portStr, err = net.SplitHostPort(localAddr)
-				if err != nil {
-					return errors.Errorf("invalid local address %q", localAddr)
-				}
-			}
-			export.Port, err = strconv.Atoi(portStr)
-			if err != nil {
-				return errors.Errorf("invalid port %q", args[1])
-			}
-			index := -1
-			for i := range cfg.Node.Service.Exports {
-				if cfg.Node.Service.Exports[i] == export {
-					index = i
-					break
-				}
-			}
-			if index < 0 {
-				cfg.Node.Service.Exports = append(cfg.Node.Service.Exports, export)
-			}
-			return nil
-		})
+		err := runner.Run(&runner.ExportAdd{Base: runner.Base{ConfigFile: configFile}}, args)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 	},
 }
 
