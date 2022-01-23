@@ -1,3 +1,11 @@
+# UNMAINTAINED
+
+This project is no longer maintained and is here for historical / archival purposes only.
+
+I've developed a better tool for this sort of thing: https://github.com/cmars/oniongrok
+
+---
+
 # ormesh - the onion-routed mesh
 
 ![mesh bag of onions](onion-mesh.jpg)
